@@ -16,10 +16,13 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <sys/mman.h>
+#include <stdint.h>
 
 /* helper to get an aligned address */
 #define ALIGN_DOWN(base, size)	((base) & -((__typeof__ (base)) (size)))
 #define ALIGN_UP(base, size)	ALIGN_DOWN ((base) + (size) - 1, (size))
+/* according to dl-load.h, this is the correct way to map a so */
+#define MAP_COPY (MAP_PRIVATE | MAP_DENYWRITE)
 
 struct filebuf
 {
@@ -36,6 +39,75 @@ struct loadcmd
   Elf64_Off mapoff;
   int prot;                             /* PROT_* bits.  */
 };
+
+static map_segments(struct NF_link_map *l, void *addr, struct loadcmd *loadcmds, int nloadcmds, 
+                    bool has_holes, int fd, size_t maplength, Elf64_Ehdr *e)
+{
+    /* here we mmap the segments into memory
+     * The original implementation is like:
+     *     First, do a mmap with length==maplength, assuring a piece of contiguious memory
+     *     Then, each segment are mmap'd with MAP_FIXED on, right in the memory claimed before
+     */
+    /* At least now, I assume [addr, addr + maplength] is always clean */
+    struct loadcmd *c = loadcmds;
+    /* I'm not doing this because addr is specified */
+    //l->l_map_start = (Elf64_Addr) mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE, fd, c->mapoff);
+    
+    l->l_map_start = (Elf64_Addr) addr;
+    l->l_map_end = l->l_map_start + maplength;
+    l->l_addr = l->l_map_start - c->mapstart;
+    mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE|MAP_FIXED, fd, c->mapoff);
+    
+    if(has_holes)
+    {
+        /* This is bad because it assume only the first LOAD contains executable pages
+         * While in fact it is not
+         */
+        mprotect((void *) (l->l_map_start + c->mapend - c->mapstart), 
+            loadcmds[nloadcmds - 1].mapstart - c->mapend,
+            PROT_NONE);
+    }
+
+    while(c < &loadcmds[nloadcmds])
+    {
+        mmap((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot,
+            MAP_FILE|MAP_COPY|MAP_FIXED,
+            fd, c->mapoff);
+        
+        if(l->l_phdr == 0 &&
+            e->e_phoff >= c->mapoff)
+            /* find the segment that contains PHT */
+            l->l_phdr = (void *) (uintptr_t) (c->mapstart + e->e_phoff
+                                      - c->mapoff);
+        
+        /* only .bss will cause this */
+        if(c->allocend > c->dataend)
+        {
+            Elf64_Addr zero, zeroend, zeropage;
+            zero = l->l_addr + c->dataend; //where zero should start
+            zeroend = l->l_addr + c->allocend;
+            zeropage = (zero + 4095) & (~4095);
+
+            if(zeroend < zeropage)
+                zeropage = zeroend;
+            
+            if(zeropage > zero)
+            {
+                /* In this case we have some .bss here */
+                memset((void *)zero, '\0', zeropage - zero);
+
+            }
+
+            if(zeroend > zeropage)
+            {
+                /* need new page to store tons of bss variables here */
+                mmap((void *)zeropage, ALIGN_UP(zeroend, 4096) - zeropage,
+                    c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED, -1, 0);
+            }
+        }
+    }
+    ++c;
+}
 
 struct NF_link_map *NF_map(const char *file, int mode, void *addr)
 {
@@ -99,12 +171,13 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
             break;
         case PT_PHDR:
             /* the PHT itself, usually the first one */
-            l->l_phdr = ph->p_vaddr;
+            /* or it may not exist at all, in which case it says "use ld.so to find it in a LOAD segment" */
+            l->l_phdr = (void *)ph->p_vaddr;
             break;
         
         case PT_DYNAMIC:
             /* the dynamic section */
-            l->l_ld = ph->p_vaddr;
+            l->l_ld = (void *)ph->p_vaddr;
             l->l_ldnum = ph->p_memsz / sizeof(Elf64_Dyn);
             break;
 
@@ -112,4 +185,8 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
             break;
         }
     }
+
+    /* now map LOAD segments into memory */
+    maplength = loadcmds[nloadcmds - 1].allocend - loadcmds[0].mapstart;
+    map_segments(l, addr, loadcmds, nloadcmds, has_holes, fd, maplength, ehdr);
 }
