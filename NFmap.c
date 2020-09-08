@@ -189,4 +189,6 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
     /* now map LOAD segments into memory */
     maplength = loadcmds[nloadcmds - 1].allocend - loadcmds[0].mapstart;
     map_segments(l, addr, loadcmds, nloadcmds, has_holes, fd, maplength, ehdr);
+
+    return l;
 }
