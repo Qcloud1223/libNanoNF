@@ -97,7 +97,17 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
             c->prot |= ph->p_flags & PROT_EXEC;
 
             break;
+        case PT_PHDR:
+            /* the PHT itself, usually the first one */
+            l->l_phdr = ph->p_vaddr;
+            break;
         
+        case PT_DYNAMIC:
+            /* the dynamic section */
+            l->l_ld = ph->p_vaddr;
+            l->l_ldnum = ph->p_memsz / sizeof(Elf64_Dyn);
+            break;
+
         default:
             break;
         }
