@@ -49,6 +49,18 @@ static void NFopen_worker(void *a)
     args->new = new = NF_map(file, mode, addr);
 
     /* relocating */
+    /* I don't think a relocation is needed when so access its internal funcs and vars
+     * Using l_addr + their offset at ELF will resolve it, because we are dynamically loading
+     * we don't even need to know the address of the symbols until a explicit NFsym is called
+     * Upon call, NFsym check match the dynamic symbol table, and return an address
+     * 
+     * But external symbols certainly need relocation, for we don't know the address of other so at runtime
+     * The dynamic loader would probably do the job: go through all the link map, find the dependency, and use the base address
+     * of the dep as the l_addr of that symbol. In this case the main program may exist as a link map
+     * because of the --rdynamic option at linking
+     * In this case, we need to traverse the link_map like ld.so, and update the GOT
+     * It would make a difference whether the deps are mapped as an NF or not, in which case we check both link(only 2!)
+     */
 }
 
 /* mode can contain a bunch of options like symbol relocation style, whether to load, etc. see more at bits/dlfcn.h
