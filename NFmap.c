@@ -75,8 +75,10 @@ static map_segments(struct NF_link_map *l, void *addr, struct loadcmd *loadcmds,
             fd, c->mapoff);
         
         if(l->l_phdr == 0 &&
-            e->e_phoff >= c->mapoff)
+            e->e_phoff >= c->mapoff &&
+            (size_t) (c->mapend - c->mapstart + c->mapoff) >= e->e_phoff + e->e_phnum * sizeof(Elf64_Phdr) )
             /* find the segment that contains PHT */
+            /* note that PHT may or may not be a seperate segment, and may or may not be included by a LOAD seg */
             l->l_phdr = (void *) (uintptr_t) (c->mapstart + e->e_phoff
                                       - c->mapoff);
         
@@ -189,6 +191,15 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
     /* now map LOAD segments into memory */
     maplength = loadcmds[nloadcmds - 1].allocend - loadcmds[0].mapstart;
     map_segments(l, addr, loadcmds, nloadcmds, has_holes, fd, maplength, ehdr);
+
+    if(l->l_phdr == NULL)
+    /* This is expected. I don't know why l_phdr is not allocated 
+     * It's probably because of capatiabilty issue, sigh
+     */
+        l->l_phdr = phdr;
+    
+    /* After loading, the absolute address is set, now relocate the PHT */
+    l->l_phdr = (Elf64_Phdr *) ((Elf64_Addr) l->l_phdr + l->l_addr);
 
     return l;
 }
