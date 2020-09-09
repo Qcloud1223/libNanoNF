@@ -60,6 +60,8 @@ static void NFopen_worker(void *a)
      * because of the --rdynamic option at linking
      * In this case, we need to traverse the link_map like ld.so, and update the GOT
      * It would make a difference whether the deps are mapped as an NF or not, in which case we check both link(only 2!)
+     * 
+     * After all, I'm doing a dynamic loading, and don't need the symbols to be all settled when I enter the program
      */
 }
 
