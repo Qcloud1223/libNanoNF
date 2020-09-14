@@ -40,7 +40,29 @@ struct loadcmd
   int prot;                             /* PROT_* bits.  */
 };
 
-static map_segments(struct NF_link_map *l, void *addr, struct loadcmd *loadcmds, int nloadcmds, 
+static void fill_info(struct NF_link_map *l)
+{
+    /* this function fill the l_info member of the link map
+     * Also, it is implemented under the logic of trying not to include unnecessary info, like link_map itself
+     * 
+     * In one line, it parse the raw info in l_ld into l_info, which is indexed
+     * All the DT_* entries signify the dynamic entry type
+     */
+    Elf64_Dyn *dyn = l->l_ld;
+    Elf64_Dyn **info = l->l_info;
+
+    while (dyn->d_tag != DT_NULL)
+    {
+        if ((Elf64_Xword) dyn->d_tag < DT_NUM)
+	        info[dyn->d_tag] = dyn;
+        ++dyn;
+        /* OS specific flags are currently omitted */
+    }
+    
+
+}
+
+static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *loadcmds, int nloadcmds, 
                     bool has_holes, int fd, size_t maplength, Elf64_Ehdr *e)
 {
     /* here we mmap the segments into memory

@@ -8,6 +8,7 @@
 
 /* for uint64_t to indicate address */
 #include <stdint.h>
+#include <elf.h> //is this necessary?
 
 struct NF_link_map
 {
@@ -21,6 +22,9 @@ struct NF_link_map
     uint16_t l_phnum; //program header count
     uint16_t l_ldnum; //load segment count
     uint64_t l_phdr; //the address of program header table
+
+    /* dynamic section info */
+    Elf64_Dyn l_info[DT_NUM];
 };
 
 
