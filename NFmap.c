@@ -223,5 +223,8 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
     /* After loading, the absolute address is set, now relocate the PHT */
     l->l_phdr = (Elf64_Phdr *) ((Elf64_Addr) l->l_phdr + l->l_addr);
 
+    /* indexing the l_ld into l_info */
+    fill_info(l);
+
     return l;
 }
