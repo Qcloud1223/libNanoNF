@@ -55,6 +55,9 @@ static void fill_info(struct NF_link_map *l)
     {
         if ((Elf64_Xword) dyn->d_tag < DT_NUM)
 	        info[dyn->d_tag] = dyn;
+        else if ((Elf64_Xword) dyn->d_tag == DT_RELACOUNT)
+            info[ DT_NUM + (DT_VERNEEDNUM - dyn->d_tag)] = dyn; //this is a quick fix for relacount
+        //FIXME to be more general 
         ++dyn;
         /* OS specific flags are currently omitted */
     }

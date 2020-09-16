@@ -24,7 +24,7 @@ struct NF_link_map
     uint64_t l_phdr; //the address of program header table
 
     /* dynamic section info */
-    Elf64_Dyn l_info[DT_NUM];
+    Elf64_Dyn *l_info[DT_NUM + 30]; //FIXME to be more general
 };
 
 
