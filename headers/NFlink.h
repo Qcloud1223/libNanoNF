@@ -25,6 +25,15 @@ struct NF_link_map
 
     /* dynamic section info */
     Elf64_Dyn *l_info[DT_NUM + 30]; //FIXME to be more general
+
+    /* symbol hash table args */
+    //Elf_Symndx
+    uint32_t l_nbuckets;
+    Elf32_Word l_gnu_bitmask_idxbits;
+    Elf32_Word l_gnu_shift;
+    const Elf64_Addr *l_gnu_bitmask;
+    const Elf32_Word *l_gnu_buckets;
+    const Elf32_Word *l_gnu_chain_zero;
 };
 
 

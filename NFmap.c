@@ -74,12 +74,31 @@ static void fill_info(struct NF_link_map *l)
     rebase(DT_STRTAB);
     rebase(DT_RELA);
     rebase(DT_JMPREL);
-    rebase(34); //DT_GNU_HASH
+    rebase(35); //DT_GNU_HASH
 }
 
 static void setup_hash(struct NF_link_map *l)
 {
+    /* it would be impossible if we don't use hash table when searching
+        So I set up the hash table here 
+        Currently only support gnu hash */
+    uint32_t *hash;
+    
+    /* borrowed from dl-lookup.c:_dl_setup_hash */
+    Elf32_Word *hash32 = l->l_info[35];
+    l->l_nbuckets = *hash32++;
+    Elf32_Word symbias = *hash32++;
+    Elf32_Word bitmask_nwords = *hash32++;
 
+    l->l_gnu_bitmask_idxbits = bitmask_nwords - 1;
+    l->l_gnu_shift = *hash32++;
+
+    l->l_gnu_bitmask = (Elf64_Addr *) hash32;
+    hash32 += 64 / 32 * bitmask_nwords;
+
+    l->l_gnu_buckets = hash32;
+    hash32 += l->l_nbuckets;
+    l->l_gnu_chain_zero = hash32 - symbias;
 }
 
 static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *loadcmds, int nloadcmds, 
