@@ -56,12 +56,29 @@ static void fill_info(struct NF_link_map *l)
         if ((Elf64_Xword) dyn->d_tag < DT_NUM)
 	        info[dyn->d_tag] = dyn;
         else if ((Elf64_Xword) dyn->d_tag == DT_RELACOUNT)
-            info[ DT_NUM + (DT_VERNEEDNUM - dyn->d_tag)] = dyn; //this is a quick fix for relacount
-        //FIXME to be more general 
+            //info[ DT_NUM + (DT_VERNEEDNUM - dyn->d_tag)] = dyn; //this is a quick fix for relacount
+            info[34] = dyn;
+        else if ((Elf64_Xword) dyn->d_tag == DT_GNU_HASH)
+            info[35] = dyn;
+        //upd: Use fixed index instead of lots of unreadable macros 
         ++dyn;
         /* OS specific flags are currently omitted */
     }
-    
+    /* at this time, the link map is loaded. So dynamic sections using ptr should be rebased here */
+    #define rebase(tag) \
+        do \
+        {   \
+            info[tag]->d_un.d_ptr += l -> l_addr; \
+        }while(0)
+    rebase(DT_SYMTAB);
+    rebase(DT_STRTAB);
+    rebase(DT_RELA);
+    rebase(DT_JMPREL);
+    rebase(34); //DT_GNU_HASH
+}
+
+static void setup_hash(struct NF_link_map *l)
+{
 
 }
 
