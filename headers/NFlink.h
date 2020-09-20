@@ -21,7 +21,7 @@ struct NF_link_map
     uint64_t l_map_start, l_map_end; //the start and end location of a so
     uint16_t l_phnum; //program header count
     uint16_t l_ldnum; //load segment count
-    uint64_t l_phdr; //the address of program header table
+    Elf64_Phdr *l_phdr; //the address of program header table
 
     /* dynamic section info */
     Elf64_Dyn *l_info[DT_NUM + 30]; //FIXME to be more general

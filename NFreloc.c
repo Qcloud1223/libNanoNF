@@ -105,7 +105,7 @@ static int lookup_linkmap(struct link_map *l, const char *name, struct rela_resu
 
     uint_fast32_t new_hash = dl_new_hash(name);
     Elf64_Sym *sym;
-    Elf64_Addr *bitmask = h.l_gnu_bitmask;
+    const Elf64_Addr *bitmask = h.l_gnu_bitmask;
     uint32_t symidx;
     
     Elf64_Addr bitmask_word = bitmask[(new_hash / __ELF_NATIVE_CLASS) & h.l_gnu_bitmask_idxbits];
@@ -117,7 +117,7 @@ static int lookup_linkmap(struct link_map *l, const char *name, struct rela_resu
         Elf32_Word bucket = h.l_gnu_buckets[new_hash % h.l_nbuckets];
         if(bucket != 0)
         {
-            Elf32_Word *hasharr = &h.l_gnu_chain_zero[bucket];
+            const Elf32_Word *hasharr = &h.l_gnu_chain_zero[bucket];
             do
             {
                 if(((*hasharr ^ new_hash) >> 1) == 0)
@@ -164,8 +164,8 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
     void *handle = dlopen("libc.so.6", RTLD_LAZY);
 
     /* do actual reloc here */
-    Elf64_Sym *symtab = l->l_info[DT_SYMTAB];
-    const char *strtab = l->l_info[DT_STRTAB];
+    Elf64_Sym *symtab = (Elf64_Sym *)l->l_info[DT_SYMTAB]->d_un.d_ptr;
+    const char *strtab = (const char *)l->l_info[DT_STRTAB]->d_un.d_ptr;
     for(Elf64_Rela *it = r_end; it < end; it++)
     {
         Elf64_Xword idx = it->r_info;
@@ -178,7 +178,7 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
         {
             /* check different types and fix the address for rela entry here */
             /* two main types: JUMP_SLO and GLOB_DAT are in one case fallthrough, so we don't switch for now */
-            void *dest = l->l_addr + it->r_offset; //destination address to write
+            void *dest = (void *)(l->l_addr + it->r_offset); //destination address to write
             *(Elf64_Addr *)dest = result.addr + it->r_addend;
         }
     }

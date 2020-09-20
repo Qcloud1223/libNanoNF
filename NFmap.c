@@ -85,7 +85,7 @@ static void setup_hash(struct NF_link_map *l)
     uint32_t *hash;
 
     /* borrowed from dl-lookup.c:_dl_setup_hash */
-    Elf32_Word *hash32 = l->l_info[35];
+    Elf32_Word *hash32 = (Elf32_Word *)l->l_info[35]->d_un.d_ptr;
     l->l_nbuckets = *hash32++;
     Elf32_Word symbias = *hash32++;
     Elf32_Word bitmask_nwords = *hash32++;
@@ -212,6 +212,7 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
         switch (ph->p_type)
         {
         case PT_LOAD:
+        {
             /* load and add it to loadcmds */
             struct loadcmd *c = &loadcmds[nloadcmds++]; //get the current loaction in loadcmds
             /* TODO: pagesize are set to 4096 for simplicity */
@@ -232,6 +233,7 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
             c->prot |= ph->p_flags & PROT_EXEC;
 
             break;
+        }
         case PT_PHDR:
             /* the PHT itself, usually the first one */
             /* or it may not exist at all, in which case it says "use ld.so to find it in a LOAD segment" */

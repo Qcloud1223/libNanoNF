@@ -22,6 +22,9 @@
 
 #include "headers/NFlink.h"
 
+extern struct NF_link_map *NF_map(const char *file, int mode, void *addr);
+extern void NFreloc(struct NF_link_map *l);
+
 struct NFopen_args
 {
     /* parameters */
@@ -45,8 +48,8 @@ static void NFopen_worker(void *a)
     void *addr = args->addr;
 
     /* search and load and map, space is allocated here on heap */
-    struct NF_link_map *new;
-    args->new = new = NF_map(file, mode, addr);
+    struct NF_link_map *new = NF_map(file, mode, addr);
+    args->new = new;
 
     /* relocating */
     /* I don't think a relocation is needed when so access its internal funcs and vars
@@ -63,7 +66,7 @@ static void NFopen_worker(void *a)
      * 
      * After all, I'm doing a dynamic loading, and don't need the symbols to be all settled when I enter the program
      */
-    NFreloc(args -> new);
+    NFreloc(new);
 }
 
 /* mode can contain a bunch of options like symbol relocation style, whether to load, etc. see more at bits/dlfcn.h
