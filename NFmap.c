@@ -83,7 +83,7 @@ static void setup_hash(struct NF_link_map *l)
         So I set up the hash table here 
         Currently only support gnu hash */
     uint32_t *hash;
-    
+
     /* borrowed from dl-lookup.c:_dl_setup_hash */
     Elf32_Word *hash32 = l->l_info[35];
     l->l_nbuckets = *hash32++;
@@ -264,6 +264,8 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
 
     /* indexing the l_ld into l_info */
     fill_info(l);
+
+    setup_hash(l);
 
     return l;
 }
