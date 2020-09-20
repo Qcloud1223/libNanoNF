@@ -63,6 +63,7 @@ static void NFopen_worker(void *a)
      * 
      * After all, I'm doing a dynamic loading, and don't need the symbols to be all settled when I enter the program
      */
+    NFreloc(args -> new);
 }
 
 /* mode can contain a bunch of options like symbol relocation style, whether to load, etc. see more at bits/dlfcn.h
