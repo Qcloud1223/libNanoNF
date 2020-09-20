@@ -17,6 +17,7 @@
 #include "headers/NFlink.h"
 #include <elf.h>
 #include <link.h> //we have to search link_map here
+#include <stdint.h>
 
 /* a uniform structure for .data and .text relocation */
 struct uniReloc
@@ -26,6 +27,16 @@ struct uniReloc
     Elf64_Xword nrelative; //count of relative relocs, omitted in .text
     int lazy; //lazy reloc, omitted in .data
 }ranges[2] = {{0, 0, 0, 0},{0, 0, 0, 0}};
+
+/* hash a string, borrowed from dl-lookup.c */
+static uint_fast32_t
+dl_new_hash (const char *s)
+{
+  uint_fast32_t h = 5381;
+  for (unsigned char c = *s; c != '\0'; c = *++s)
+    h = h * 33 + c;
+  return h & 0xffffffff;
+}
 
 static int lookup_linkmap(struct link_map *l, const char *name)
 {
@@ -41,7 +52,7 @@ static int lookup_linkmap(struct link_map *l, const char *name)
     /* dyn is now at the symbol table entry */
     Elf64_Sym *sym = (void *)dyn->d_un.d_ptr;
 
-        
+
 
 }
 
