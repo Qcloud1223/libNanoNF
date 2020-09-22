@@ -8,8 +8,9 @@
 #include <stdlib.h> //for NULL
 #include <string.h>
 
-void *NFsym(struct NF_link_map *l, const char *s)
+void *NFsym(void *ll, const char *s)
 {
+    struct NF_link_map *l = ll;
     Elf64_Sym *symtab = (void *)l->l_info[DT_SYMTAB]->d_un.d_ptr;
     const char *strtab = (void *)l->l_info[DT_STRTAB]->d_un.d_ptr;
 
