@@ -168,8 +168,9 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
                     c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED, -1, 0);
             }
         }
+        ++c;
     }
-    ++c;
+
 }
 
 struct NF_link_map *NF_map(const char *file, int mode, void *addr)
