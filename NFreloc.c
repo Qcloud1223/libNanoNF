@@ -187,12 +187,19 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
 
 void NFreloc(struct NF_link_map *l)
 {
-    /* set up range[0] for relative reloc */
+    /* set up range[0] for relative reloc and global vars */
     if(l->l_info[DT_RELA])
     {
         ranges[0].start = l->l_info[DT_RELA]->d_un.d_ptr;
         ranges[0].size = l->l_info[DT_RELASZ]->d_un.d_val;
         ranges[0].nrelative = l->l_info[34]->d_un.d_val; //relacount is now at 34
+    }
+    /* set up range[1] for function reloc */
+    if(l->l_info[DT_PLTREL]) //TODO: Also check reloc type: it is REL/RELA? Only 2 options?
+    {
+        ranges[1].start = l->l_info[DT_JMPREL]->d_un.d_ptr;
+        ranges[1].size = l->l_info[DT_PLTRELSZ]->d_un.d_val;
+        //TODO: check lazy or not here
     }
 
     /* do actucal reloc here using ranges set up */
