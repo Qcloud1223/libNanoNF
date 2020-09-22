@@ -22,7 +22,8 @@ void *NFsym(struct NF_link_map *l, const char *s)
         {
             //found it
             //FIXME: you may want to check if the symbol is valid. E.g., is it UND?
-            return (void *)curr_sym->st_value;
+            //symbol table cannot be modified. All we have done is just finishing got at around 0x200100
+            return (void *)(curr_sym->st_value + l->l_addr);
         }
         curr_sym++;
     }
