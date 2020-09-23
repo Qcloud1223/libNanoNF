@@ -182,6 +182,7 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
             *(Elf64_Addr *)dest = result.addr + it->r_addend;
         }
     }
+    dlclose(handle);
 
 }
 
