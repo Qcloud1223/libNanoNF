@@ -20,7 +20,7 @@
  * Email: qcloud1014 at gmail.com
  */
 
-#include "headers/NFlink.h"
+#include "../NFlink.h"
 
 extern struct NF_link_map *NF_map(const char *file, int mode, void *addr);
 extern void NFreloc(struct NF_link_map *l);

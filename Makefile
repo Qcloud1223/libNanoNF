@@ -1,20 +1,23 @@
 #lib: NFopen.c NFreloc.c NFmap.c headers/NFlink.h
 #	gcc -o libNanoNF.so -shared -fPIC -g NFreloc.c NFmap.c NFopen.c
 
-lib: NFmap.o NFreloc.o NFsym.o NFopen.o
-	gcc -o libNanoNF.so -shared -fPIC -g NFmap.o NFreloc.o NFopen.o NFsym.o
+lib: NFmap.o NFreloc.o NFsym.o NFusage.o NFopen.o
+	gcc -o libNanoNF.so -shared -fPIC -g NFmap.o NFreloc.o NFopen.o NFsym.o NFusage.o
 
-NFopen.o: NFopen.c
-	gcc -fPIC -g -c NFopen.c
+NFopen.o: src/NFopen.c
+	gcc -fPIC -g -c src/NFopen.c
 
-NFreloc.o: NFreloc.c
-	gcc -fPIC -g -c NFreloc.c
+NFreloc.o: src/NFreloc.c
+	gcc -fPIC -g -c src/NFreloc.c
 
-NFmap.o: NFmap.c
-	gcc -fPIC -g -c NFmap.c
+NFmap.o: src/NFmap.c
+	gcc -fPIC -g -c src/NFmap.c
 
-NFsym.o: NFsym.c
-	gcc -fPIC -g -c NFsym.c
+NFsym.o: src/NFsym.c
+	gcc -fPIC -g -c src/NFsym.c
 
 clean:
 	rm *.o *.so
+
+NFusage.o: src/NFusage.c
+	gcc -fPIC -g -c src/NFusage.c
