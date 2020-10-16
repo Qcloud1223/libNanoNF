@@ -128,6 +128,7 @@ static int lookup_linkmap(struct link_map *l, const char *name, struct rela_resu
                     const char * symname = strtab + symtab[symidx].st_name;
                     /* FIXME: You may also want to check the visibility and strong/weak of the found symbol
                         but... not now */
+                    /* FIXME: Please make sure no local symbols like "tmp" will be accessed here! */
                     if (!strcmp (symname, name))
                     {
                         result->s = &symtab[symidx];
@@ -161,7 +162,7 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
     }
 
     /* currently, I only want to search libc.so */
-    void *handle = dlopen("libc.so.6", RTLD_LAZY);
+    //void *handle = dlopen("libc.so.6", RTLD_LAZY);
 
     /* do actual reloc here */
     Elf64_Sym *symtab = (Elf64_Sym *)l->l_info[DT_SYMTAB]->d_un.d_ptr;
@@ -172,17 +173,26 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
         Elf64_Sym *tmp_sym = &symtab[idx >> 32]; //from dynamic symbol table get the symbol
         Elf64_Word name = tmp_sym->st_name;
         const char *real_name = strtab + name; //from string table get the real name of the symbol
-        struct rela_result result;
-        int res = lookup_linkmap((struct link_map *)handle, real_name, &result);
-        if(res)
+        struct link_map *curr_search = l->l_search_list[0];
+        while(curr_search)
         {
-            /* check different types and fix the address for rela entry here */
-            /* two main types: JUMP_SLO and GLOB_DAT are in one case fallthrough, so we don't switch for now */
-            void *dest = (void *)(l->l_addr + it->r_offset); //destination address to write
-            *(Elf64_Addr *)dest = result.addr + it->r_addend;
+            struct rela_result result;
+            int res = lookup_linkmap((struct link_map *)curr_search, real_name, &result);
+            if(res)
+            {
+                /* check different types and fix the address for rela entry here */
+                /* two main types: JUMP_SLO and GLOB_DAT are in one case fallthrough, so we don't switch for now */
+                void *dest = (void *)(l->l_addr + it->r_offset); //destination address to write
+                *(Elf64_Addr *)dest = result.addr + it->r_addend;
+                dlclose(curr_search); //dlopened in NFdeps before
+                break; //first hit wins
+            }
+            ++curr_search;
         }
+        
+        
     }
-    dlclose(handle);
+    //dlclose(handle);
 
 }
 

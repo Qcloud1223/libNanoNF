@@ -34,6 +34,9 @@ struct NF_link_map
     const Elf64_Addr *l_gnu_bitmask;
     const Elf32_Word *l_gnu_buckets;
     const Elf32_Word *l_gnu_chain_zero;
+
+    char **l_runpath; //user-specified custom search path
+    struct link_map **l_search_list; //a list of direct reference of this object
 };
 
 
