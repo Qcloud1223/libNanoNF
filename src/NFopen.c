@@ -24,6 +24,7 @@
 
 extern struct NF_link_map *NF_map(const char *file, int mode, void *addr);
 extern void NFreloc(struct NF_link_map *l);
+extern void map_deps(struct NF_link_map *l);
 
 struct NFopen_args
 {
@@ -50,6 +51,9 @@ static void NFopen_worker(void *a)
     /* search and load and map, space is allocated here on heap */
     struct NF_link_map *new = NF_map(file, mode, addr);
     args->new = new;
+
+    /* filling in dependency info, like search list */
+    map_deps(new);
 
     /* relocating */
     /* I don't think a relocation is needed when so access its internal funcs and vars
