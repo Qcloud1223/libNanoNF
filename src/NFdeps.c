@@ -36,15 +36,16 @@ void map_deps(struct NF_link_map *l)
     {
         if(i->d_tag == DT_NEEDED) nneeded++;
         if(i->d_tag == DT_RUNPATH) nrunp++;
+        ++i;
     } while (i->d_tag != DT_NULL);
     
-    l->l_runpath = (char **)malloc(nrunp * sizeof(char *));
+    l->l_runpath = (const char **)malloc(nrunp * sizeof(char *));
     l->l_search_list = (struct link_map **)calloc(nneeded + 1, sizeof(struct link_map*));
 
     i = l->l_ld;
     int runpcnt = 0;
     int neededcnt = 0;
-    char **failed = (char **)calloc(nneeded, sizeof(char *));
+    const char **failed = (const char **)calloc(nneeded, sizeof(char *));
 
     while(i->d_tag != DT_NULL) //the reason for traversing instead of using l->info is that there may be multiple DT_NEEDED
     {
@@ -57,19 +58,19 @@ void map_deps(struct NF_link_map *l)
                 //correctly notice outside the program that an error occured, plz search in customed path
                 failed[neededcnt] = name;
             }
-            l->l_search_list[++neededcnt] = handle;
+            l->l_search_list[neededcnt++] = (struct link_map *)handle;
         }
         else if (i->d_tag == DT_RUNPATH) //RPATH and RUNPATH are similar, only doing the latter here
         {
-            l->l_runpath[++runpcnt] = strtab + i->d_un.d_val; //find RUNPATH in strtab
+            l->l_runpath[runpcnt++] = strtab + i->d_un.d_val; //find RUNPATH in strtab
         }
         ++i;
     }
 
-    char *ch = failed[0];
+    const char **ch = failed;
     for(int j = 0; j < nneeded; j++)
     {
-        if(ch != NULL)
+        if(*ch != NULL)
         {
             //find in the RUNPATH
             int found = 0;
@@ -83,7 +84,7 @@ void map_deps(struct NF_link_map *l)
                 if(handle_again)
                 {
                     found = 1;
-                    l->l_search_list[j] = handle_again;
+                    l->l_search_list[j] = (struct link_map *)handle_again;
                     break;
                 }
             }
@@ -92,5 +93,6 @@ void map_deps(struct NF_link_map *l)
                 //error here, nowhere to find the specified so
             }
         }
+        ch++;
     }
 }
