@@ -217,11 +217,13 @@ void NFreloc(struct NF_link_map *l)
     for(int i = 0; i < 2; ++i)
         do_reloc(l, &ranges[i]);
     
+    /* UPD: this is totally wrong, for unload search list should be in the destructor of the NF */
+    /* NFclose function should take care of this */
     /* now the reloc is done, dlclose the dlopened objs before */
-    struct link_map **lm = l -> l_search_list;
+    /* struct link_map **lm = l -> l_search_list;
     while(*lm)
     {
         dlclose(*lm);
         lm++;
-    }
+    } */
 }
