@@ -9,6 +9,8 @@
 /* for uint64_t to indicate address */
 #include <stdint.h>
 #include <elf.h> //is this necessary?
+#include <stdlib.h>
+#include <sys/types.h>
 
 struct NF_link_map
 {
@@ -39,6 +41,24 @@ struct NF_link_map
     struct link_map **l_search_list; //a list of direct reference of this object
 };
 
+/* move the definition of filebuf from NFmap.c here */
+struct filebuf
+{
+    long len;
+    char buf[832] __attribute__ ((aligned (__alignof(Elf64_Ehdr))));
+};
+
+/* data structure to store the search path information, filled in NFusage, and later used in NFmap */
+struct NF_list
+{ 
+    struct NF_link_map *map;
+    struct NF_list *next;
+    int done;
+
+    int fd;
+    const char *name; //for BFS to check if this is already on the list
+    struct filebuf fb; // i don't really want to put such a large element inside the list, fix this later
+};
 
 #endif
 

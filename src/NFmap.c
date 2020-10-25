@@ -24,13 +24,13 @@
 /* according to dl-load.h, this is the correct way to map a so */
 #define MAP_COPY (MAP_PRIVATE | MAP_DENYWRITE)
 
-struct filebuf
+/* struct filebuf
 {
     long len; //store the length of bytes in buf
     char buf[832] __attribute__ ((aligned (__alignof(Elf64_Ehdr))));
     //size==832 is a heuristic in dl-load.c which will meet the requirement of most ELFs
     //note that buf is exclusively for ELF header, even at the end of it may exist some fragments of phdr, we don't care
-};
+}; */
 
 /* struct to store PT_LOAD info */
 struct loadcmd
