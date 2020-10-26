@@ -173,21 +173,24 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
 
 }
 
-struct NF_link_map *NF_map(const char *file, int mode, void *addr)
+/* the new NF_map loads an object already processed by NFusage_worker */
+//struct NF_link_map *NF_map(const char *file, int mode, void *addr)
+struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
 {
-    int fd;
+    //int fd;
 
     /* TODO: actually serach directories here */
-    fd = open(file, O_RDONLY, 0);
+    //fd = open(file, O_RDONLY, 0);
     /* it may help to know the SONAME and REALNAME of a so */
 
-    struct filebuf fb;
+    //struct filebuf fb;
 
     /* just cram into buf as much as you can */
     /* use a do-while can assure this event won't be interrupted */
-    size_t retlen = read(fd, fb.buf, sizeof(fb.buf) - fb.len);
+    //size_t retlen = read(fd, fb.buf, sizeof(fb.buf) - fb.len); 
 
-    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)fb.buf;
+    
+    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)nl->fb.buf;
     size_t maplength = ehdr->e_phnum * sizeof(Elf64_Phdr);
 
     /* create a new link map, and fill in header table info */
@@ -200,7 +203,7 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
      */
     /* store the phdrs on heap for further loading */
     Elf64_Phdr *phdr = malloc(maplength);
-    pread(fd, (void *)phdr, maplength, ehdr->e_phoff);
+    pread(nl->fd, (void *)phdr, maplength, ehdr->e_phoff);
 
     struct loadcmd loadcmds[l->l_phnum];
     int nloadcmds = 0;
@@ -254,7 +257,7 @@ struct NF_link_map *NF_map(const char *file, int mode, void *addr)
 
     /* now map LOAD segments into memory */
     maplength = loadcmds[nloadcmds - 1].allocend - loadcmds[0].mapstart;
-    map_segments(l, addr, loadcmds, nloadcmds, has_holes, fd, maplength, ehdr);
+    map_segments(l, addr, loadcmds, nloadcmds, has_holes, nl->fd, maplength, ehdr);
 
     if(l->l_phdr == NULL)
     /* This is expected. I don't know why l_phdr is not allocated 

@@ -21,8 +21,11 @@
  */
 
 #include "../NFlink.h"
+#include <stdlib.h>
+#include <stdio.h>
 
-extern struct NF_link_map *NF_map(const char *file, int mode, void *addr);
+//extern struct NF_link_map *NF_map(const char *file, int mode, void *addr);
+extern struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr);
 extern void NFreloc(struct NF_link_map *l);
 extern void map_deps(struct NF_link_map *l);
 
@@ -48,12 +51,27 @@ static void NFopen_worker(void *a)
     int mode  = args->mode;
     void *addr = args->addr;
 
+    if(head == NULL)
+    {
+        printf("Fatal error: NFusage not called before NFopen!");
+        //maybe directly exit here?
+    }
     /* search and load and map, space is allocated here on heap */
-    struct NF_link_map *new = NF_map(file, mode, addr);
+    struct NF_link_map *new = NF_map(head, mode, addr);
     args->new = new;
 
+    /* the mapping of dependencies is now controled by the list, so no need for map_deps */
+    struct NF_list *tmp = head->next;
+    while(tmp)
+    {
+        //add interactive querying for address here
+        Elf64_Addr tmp_addr = 0x0;
+        NF_map(head, 0, tmp_addr);
+        tmp = tmp->next;
+    }
+
     /* filling in dependency info, like search list */
-    map_deps(new);
+    //map_deps(new);
 
     /* relocating */
     /* I don't think a relocation is needed when so access its internal funcs and vars
