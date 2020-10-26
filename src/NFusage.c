@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <elf.h>
 #include <string.h>
+#include <stdio.h>
 
 struct NF_list *head = NULL, *tail = NULL;
 #define ALIGN_DOWN(base, size)	((base) & -((__typeof__ (base)) (size)))
@@ -29,6 +30,7 @@ uint64_t NFusage_worker(const char *name, int mode)
     if(fd == -1)
     {
         //check the DT_RUNPATH of current map
+        printf("In mapping %s as an NF: file not found\n", name);
     }
     //set head and tail when cold start
     head = calloc(sizeof(struct NF_list), 1);
@@ -93,10 +95,29 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
         }
     }
 
-    Elf64_Dyn *str = ld, *dyn = ld;
+    Elf64_Dyn *str, *dyn = ld, *curr = ld;
+    int nrunp = 0, nneeded = 0;
     
-    while(str->d_tag != DT_STRTAB)
-        str++;
+    while(curr->d_tag != NULL)
+    {
+        switch(curr->d_tag)
+        {
+            case DT_STRTAB:
+                str = curr;
+                break;
+            case DT_NEEDED:
+                nneeded++;
+                break;
+            case DT_RUNPATH:
+                nrunp++;
+                break;
+        }
+        curr++;
+    }
+    l->l_runpath = (const char **)malloc(nrunp * sizeof(char *));
+    l->l_search_list = (struct link_map **)calloc(nneeded + 1, sizeof(struct link_map*));
+    int runpcnt = 0;
+    int neededcnt = 0; //again, this is for filling the search list
     while(dyn->d_tag != DT_NULL)
     {
         if(dyn->d_tag == DT_NEEDED)
@@ -122,6 +143,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                 {
                     //XXX: THIS IS NOT REALLY USEABLE NOW, PLZ ADD RUNPATH SUPPORT
                     //only lib1.so -> lib2.so -> lib3.so will work now ... and no libc func can be used
+                    printf("In mapping %s as a dependency: file not found\n", filename);
                 }
                 struct NF_list *tmp = calloc(sizeof(struct NF_list), 1);
                 //reset the pointers to fit a new element
@@ -140,6 +162,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                 tmp->map->l_phnum = ehdr->e_phnum;
                 tmp->map->l_phlen = maplength;
                 tmp->map->l_phoff = ehdr->e_phoff;
+                l->l_search_list[++neededcnt] = tmp->map;
             }
         }
         dyn++;
