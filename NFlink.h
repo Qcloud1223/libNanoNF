@@ -51,7 +51,7 @@ struct filebuf
 /* data structure to store the search path information, filled in NFusage, and later used in NFmap */
 struct NF_list
 { 
-    struct NF_link_map *map;
+    //struct NF_link_map *map; //suppress this for now because this will not be used now
     struct NF_list *next;
     int done;
 
@@ -59,6 +59,8 @@ struct NF_list
     const char *name; //for BFS to check if this is already on the list
     struct filebuf fb; // i don't really want to put such a large element inside the list, fix this later
 };
+
+extern struct NF_list *head, *tail;
 
 #endif
 
