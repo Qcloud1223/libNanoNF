@@ -1,4 +1,5 @@
 /* return the memory usage of a shared object */
+#define _GNU_SOURCE //for mempcpy
 #include "../NFlink.h"
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -12,6 +13,13 @@
 struct NF_list *head = NULL, *tail = NULL;
 uint64_t dissect_and_calculate(struct NF_list *nl);
 #define ALIGN_DOWN(base, size)	((base) & -((__typeof__ (base)) (size)))
+static const char *sys_path[2];
+
+void init_system_path()
+{
+    sys_path[0] = "/usr/lib/x86_64-linux-gnu/";
+    sys_path[1] = "/lib/x86_64-linux-gnu/";
+}
 
 uint64_t NFusage(void *ll)
 {
@@ -121,13 +129,26 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
     l->l_search_list = (struct NF_link_map **)calloc(nneeded + 1, sizeof(struct NF_link_map*));
     int runpcnt = 0;
     int neededcnt = 0; //again, this is for filling the search list
+
+    while (dyn->d_tag != DT_NULL)
+    {
+        if(dyn->d_tag == DT_RUNPATH)
+        {
+            l->l_runpath[runpcnt] = malloc(64);
+            pread(nl->fd, l->l_runpath[runpcnt], 64, str->d_un.d_ptr + dyn->d_un.d_val);
+            runpcnt++;
+        }
+        dyn++;
+    }
+    
+    dyn = ld;
     while(dyn->d_tag != DT_NULL)
     {
         if(dyn->d_tag == DT_NEEDED)
         {
             Elf64_Addr offset = dyn->d_un.d_val;
-            char *filename = malloc(64); //store the filename for each dependency
-            pread(nl->fd, filename, 64, str->d_un.d_ptr + offset);
+            char *filename = malloc(128); //store the filename for each dependency
+            pread(nl->fd, filename, 128, str->d_un.d_ptr + offset); //change from 64 to 128 because the prefix is long
             struct NF_list *tmp = head;
             int found = 0;
             while(tmp != NULL)
@@ -150,7 +171,29 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                 {
                     //XXX: THIS IS NOT REALLY USEABLE NOW, PLZ ADD RUNPATH SUPPORT
                     //only lib1.so -> lib2.so -> lib3.so will work now ... and no libc func can be used
-                    printf("In mapping %s as a dependency: file not found\n", filename);
+                    
+                    char buf[128];
+                    for(int i = 0;i < runpcnt; i++)
+                    {
+                        char *ptr = mempcpy(buf, l->l_search_list[i], strlen(l->l_search_list[i]));
+                        memcpy(ptr, filename, strlen(filename));
+                        if((fd = open(buf, O_RDONLY)) != -1)
+                            break;
+                    }
+                    //nothing found in runpath, now try system path
+                    if(fd == -1)
+                    {
+                        for(int i = 0; i< 2;i++)
+                        {
+                            char *ptr = mempcpy(buf, sys_path[i], strlen(sys_path[i]));
+                            memcpy(ptr, filename, strlen(filename));
+                            if((fd = open(buf, O_RDONLY)) != -1)
+                                break;
+                        }
+                        if(fd == -1)
+                            printf("In mapping %s as a dependency: file not found\n", filename);
+                    }
+                    
                 }
                 struct NF_list *tmp = calloc(sizeof(struct NF_list), 1);
                 //reset the pointers to fit a new element
