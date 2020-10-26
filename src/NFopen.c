@@ -66,7 +66,7 @@ static void NFopen_worker(void *a)
     {
         //add interactive querying for address here
         Elf64_Addr tmp_addr = 0x0;
-        NF_map(head, 0, tmp_addr);
+        NF_map(tmp, 0, tmp_addr);
         tmp = tmp->next;
     }
 

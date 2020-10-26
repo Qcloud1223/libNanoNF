@@ -35,9 +35,20 @@ uint64_t NFusage_worker(const char *name, int mode)
     tail = head;
 
     //fill in info needed for dissect
-    size_t retlen = read(fd, head->fb.buf, sizeof(head->fb.buf) - head->fb.len);
+    struct filebuf fb;
+    size_t retlen = read(fd, fb.buf, sizeof(fb.buf) - fb.len);
+    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)fb.buf;
+    Elf64_Addr maplength = ehdr->e_phnum * sizeof(Elf64_Phdr);
+
+    //allocate the link map early, and fill in some info
+    head->map = calloc(sizeof(struct NF_link_map), 1);
     head->fd = fd;
-    head->name = name;
+    char *real_name = strdup(name); //don't forget to free it when destroying a link_map!
+    head->map->l_name = real_name;
+    head->map->l_phnum = ehdr->e_phnum;
+    head->map->l_phlen = maplength;
+    head->map->l_phoff = ehdr->e_phoff;
+
     //not useful for we're using calloc
     //head->next = NULL;
     struct NF_list *iter = head;
@@ -55,11 +66,10 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
 {
     /* this function examine ``nl`` on the list, and put its dependencies on the list */
     //fb.buf is used as a pointer to ELF header, later we will do this again in building up the link_map
-    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)nl->fb.buf; 
-    size_t maplength = ehdr->e_phnum * sizeof(Elf64_Phdr);
-    Elf64_Phdr *phdr = malloc(maplength);
-    pread(nl->fd, (void *)phdr, maplength, ehdr->e_phoff);
-    uint16_t phnum = ehdr->e_phnum;
+    struct NF_link_map *l = nl->map;
+    Elf64_Phdr *phdr = malloc(l->l_phlen);
+    pread(nl->fd, (void *)phdr, l->l_phlen, l->l_phoff);
+    uint16_t phnum = l->l_phnum;
 
     Elf64_Dyn *ld;
     Elf64_Addr mapstart = -1, mapend;
@@ -98,7 +108,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
             int found = 0;
             while(tmp != NULL)
             {
-                if(!strcmp(filename, tmp->name))
+                if(!strcmp(filename, tmp->map->l_name))
                 {
                     found = 1;
                     break;
@@ -117,10 +127,19 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                 //reset the pointers to fit a new element
                 tail->next = tmp;
                 tmp->next = NULL;
-                //fill in the blank
+                /* filling the info all over again */
+                struct filebuf fb;
+                size_t retlen = read(fd, fb.buf, sizeof(fb.buf) - fb.len);
+                Elf64_Ehdr *ehdr = (Elf64_Ehdr *)fb.buf;
+                Elf64_Addr maplength = ehdr->e_phnum * sizeof(Elf64_Phdr);
+
+                tmp->map = calloc(sizeof(struct NF_link_map), 1);
                 tmp->fd = fd;
-                read(fd, tmp->fb.buf, sizeof(tmp->fb.buf) - tmp->fb.len);
-                tmp->name = filename;
+                char *real_name = strdup(filename); //don't forget to free it when destroying a link_map!
+                tmp->map->l_name = real_name;
+                tmp->map->l_phnum = ehdr->e_phnum;
+                tmp->map->l_phlen = maplength;
+                tmp->map->l_phoff = ehdr->e_phoff;
             }
         }
         dyn++;

@@ -23,6 +23,8 @@ struct NF_link_map
     uint64_t l_map_start, l_map_end; //the start and end location of a so
     uint16_t l_phnum; //program header count
     uint16_t l_ldnum; //load segment count
+    Elf64_Addr l_phlen; //total length of the program headers
+    Elf64_Addr l_phoff;
     Elf64_Phdr *l_phdr; //the address of program header table
 
     /* dynamic section info */
@@ -51,13 +53,13 @@ struct filebuf
 /* data structure to store the search path information, filled in NFusage, and later used in NFmap */
 struct NF_list
 { 
-    //struct NF_link_map *map; //suppress this for now because this will not be used now
+    struct NF_link_map *map;
     struct NF_list *next;
     int done;
 
     int fd;
-    const char *name; //for BFS to check if this is already on the list
-    struct filebuf fb; // i don't really want to put such a large element inside the list, fix this later
+    //const char *name; //get the name from map->l_name
+    //struct filebuf fb; // i don't really want to put such a large element inside the list, fix this later
 };
 
 extern struct NF_list *head, *tail;

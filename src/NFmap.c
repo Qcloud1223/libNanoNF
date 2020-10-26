@@ -101,8 +101,10 @@ static void setup_hash(struct NF_link_map *l)
     l->l_gnu_chain_zero = hash32 - symbias;
 }
 
-static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *loadcmds, int nloadcmds, 
-                    bool has_holes, int fd, size_t maplength, Elf64_Ehdr *e)
+//get rid of ehdr because filebuf will not be in NFmap now. It is restricted to NFusage.
+static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *loadcmds, int nloadcmds,
+                      bool has_holes, int fd, size_t maplength)
+//                    bool has_holes, int fd, size_t maplength, Elf64_Ehdr *e)
 {
     /* here we mmap the segments into memory
      * The original implementation is like:
@@ -136,11 +138,11 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
             fd, c->mapoff);
         
         if(l->l_phdr == 0 &&
-            e->e_phoff >= c->mapoff &&
-            (size_t) (c->mapend - c->mapstart + c->mapoff) >= e->e_phoff + e->e_phnum * sizeof(Elf64_Phdr) )
+            l->l_phoff >= c->mapoff &&
+            (size_t) (c->mapend - c->mapstart + c->mapoff) >= l->l_phoff + l->l_phnum * sizeof(Elf64_Phdr) )
             /* find the segment that contains PHT */
             /* note that PHT may or may not be a seperate segment, and may or may not be included by a LOAD seg */
-            l->l_phdr = (void *) (uintptr_t) (c->mapstart + e->e_phoff
+            l->l_phdr = (void *) (uintptr_t) (c->mapstart + l->l_phoff
                                       - c->mapoff);
         
         /* only .bss will cause this */
@@ -173,7 +175,7 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
 
 }
 
-/* the new NF_map loads an object already processed by NFusage_worker */
+/* load an NF_link_map specified by nl->map */
 //struct NF_link_map *NF_map(const char *file, int mode, void *addr)
 struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
 {
@@ -189,21 +191,29 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
     /* use a do-while can assure this event won't be interrupted */
     //size_t retlen = read(fd, fb.buf, sizeof(fb.buf) - fb.len); 
 
-    
-    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)nl->fb.buf;
-    size_t maplength = ehdr->e_phnum * sizeof(Elf64_Phdr);
+    /* the information we get from ehdr is merely phnum, total length of all program headers, and offset for program headers
+     * so we dump filebuf in NF_list, instead it is added as NF_link_map members
+     * also ``Elf64_Addr`` is always sufficient for ``maplength``, for it is a memory length
+     */
+    //Elf64_Ehdr *ehdr = (Elf64_Ehdr *)nl->fb.buf;
+    //size_t maplength = ehdr->e_phnum * sizeof(Elf64_Phdr);
 
+    
     /* create a new link map, and fill in header table info */
-    struct NF_link_map *l = calloc(sizeof(struct NF_link_map), 1);
-    l->l_phnum = ehdr->e_phnum;
+    //struct NF_link_map *l = calloc(sizeof(struct NF_link_map), 1);
+    //l->l_phnum = ehdr->e_phnum;
 
     /* note that in dl-load: open_verify 
      * That function open an file with a little bit check to the phdrs
      * And the same thing just appear once again in _dl_map_object_from_fd
      */
     /* store the phdrs on heap for further loading */
-    Elf64_Phdr *phdr = malloc(maplength);
-    pread(nl->fd, (void *)phdr, maplength, ehdr->e_phoff);
+    //Elf64_Phdr *phdr = malloc(maplength);
+    //pread(nl->fd, (void *)phdr, maplength, ehdr->e_phoff);
+
+    struct NF_link_map *l = nl->map;
+    Elf64_Phdr *phdr = malloc(l->l_phlen);
+    pread(nl->fd, (void *)phdr, l->l_phlen, l->l_phoff);
 
     struct loadcmd loadcmds[l->l_phnum];
     int nloadcmds = 0;
@@ -256,8 +266,8 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
     }
 
     /* now map LOAD segments into memory */
-    maplength = loadcmds[nloadcmds - 1].allocend - loadcmds[0].mapstart;
-    map_segments(l, addr, loadcmds, nloadcmds, has_holes, nl->fd, maplength, ehdr);
+    size_t maplength = loadcmds[nloadcmds - 1].allocend - loadcmds[0].mapstart;
+    map_segments(l, addr, loadcmds, nloadcmds, has_holes, nl->fd, maplength);
 
     if(l->l_phdr == NULL)
     /* This is expected. I don't know why l_phdr is not allocated 
