@@ -65,8 +65,11 @@ static void NFopen_worker(void *a)
     while(tmp)
     {
         //add interactive querying for address here
+        int tmp_mode;
+        printf("shared library:%s needs an open mode:", tmp->map->l_name);
+        scanf("%d", &tmp_mode);
         Elf64_Addr tmp_addr = 0x0;
-        NF_map(tmp, 0, tmp_addr);
+        NF_map(tmp, tmp_mode, tmp_addr);
         tmp = tmp->next;
     }
 
