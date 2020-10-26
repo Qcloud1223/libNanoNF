@@ -23,6 +23,7 @@
 #include "../NFlink.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 //extern struct NF_link_map *NF_map(const char *file, int mode, void *addr);
 extern struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr);
@@ -92,11 +93,34 @@ static void NFopen_worker(void *a)
      * After all, I'm doing a dynamic loading, and don't need the symbols to be all settled when I enter the program
      */
     tmp = head;
+    tmp->map->l_prev = NULL;
     while(tmp)
     {
         NFreloc(tmp->map);
+        if(tmp->next)
+        {
+            tmp->map->l_next = tmp->next->map;
+            tmp->next->map->l_prev = tmp->map;
+        }
+        else
+        {
+            tmp->map->l_next = NULL;
+        }
+        
         tmp = tmp->next;
     }
+
+    /* destroy the list */
+    tmp = head;
+    struct NF_list *late;
+    while (tmp)
+    {
+        close(tmp ->fd);
+        late = tmp;
+        tmp = tmp->next;
+        free(late);
+    }
+    
     //NFreloc(new);
 }
 

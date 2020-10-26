@@ -142,6 +142,10 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
             if(!found)
             {
                 int fd = open(filename, O_RDONLY);
+                /* XXX problems here
+                 * open will successfully deal with file under the current directory
+                 * but dlopen won't until RUNPATH is set
+                 */
                 if(fd == -1)
                 {
                     //XXX: THIS IS NOT REALLY USEABLE NOW, PLZ ADD RUNPATH SUPPORT
