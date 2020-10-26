@@ -32,7 +32,7 @@ struct uniReloc
 
 struct rela_result
 {
-    struct link_map *l;
+    struct NF_link_map *l;
     Elf64_Sym *s;
     Elf64_Addr addr;
 };
@@ -82,7 +82,7 @@ dl_new_hash (const char *s)
   return h & 0xffffffff;
 }
 
-static int lookup_linkmap(struct link_map *l, const char *name, struct rela_result *result)
+static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_result *result)
 {
     /* search the symbol table of given link_map to find the occurrence of the symbol
         return 1 upon success and 0 otherwise */
@@ -100,29 +100,30 @@ static int lookup_linkmap(struct link_map *l, const char *name, struct rela_resu
 
     /* playing with hash table here, borrowed from dl-lookup.c */
     /* But first of all, re-set the hash table here */
-    struct hash_table h;
-    rebuild_hash(l, &h);
+    /* we don't need to rebuild the hash because we're relocating with NF_link_map now */
+    //struct hash_table h;
+    //rebuild_hash(l, &h);
 
     uint_fast32_t new_hash = dl_new_hash(name);
     Elf64_Sym *sym;
-    const Elf64_Addr *bitmask = h.l_gnu_bitmask;
+    const Elf64_Addr *bitmask = l->l_gnu_bitmask;
     uint32_t symidx;
     
-    Elf64_Addr bitmask_word = bitmask[(new_hash / __ELF_NATIVE_CLASS) & h.l_gnu_bitmask_idxbits];
+    Elf64_Addr bitmask_word = bitmask[(new_hash / __ELF_NATIVE_CLASS) & l->l_gnu_bitmask_idxbits];
     unsigned int hashbit1 = new_hash & (__ELF_NATIVE_CLASS - 1); 
-	unsigned int hashbit2 = ((new_hash >> h.l_gnu_shift)
+	unsigned int hashbit2 = ((new_hash >> l->l_gnu_shift)
 				   & (__ELF_NATIVE_CLASS - 1));
     if((bitmask_word >> hashbit1) & (bitmask_word >> hashbit2) & 1)
     {
-        Elf32_Word bucket = h.l_gnu_buckets[new_hash % h.l_nbuckets];
+        Elf32_Word bucket = l->l_gnu_buckets[new_hash % l->l_nbuckets];
         if(bucket != 0)
         {
-            const Elf32_Word *hasharr = &h.l_gnu_chain_zero[bucket];
+            const Elf32_Word *hasharr = &l->l_gnu_chain_zero[bucket];
             do
             {
                 if(((*hasharr ^ new_hash) >> 1) == 0)
                 {
-                    symidx = hasharr - h.l_gnu_chain_zero;
+                    symidx = hasharr - l->l_gnu_chain_zero;
                     /* now, symtab[symidx] is the current symbol
                         hash table has done all work and can be stripped */
                     const char * symname = strtab + symtab[symidx].st_name;
@@ -173,11 +174,11 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
         Elf64_Sym *tmp_sym = &symtab[idx >> 32]; //from dynamic symbol table get the symbol
         Elf64_Word name = tmp_sym->st_name;
         const char *real_name = strtab + name; //from string table get the real name of the symbol
-        struct link_map **curr_search = l->l_search_list;
+        struct NF_link_map **curr_search = l->l_search_list;
         while(*curr_search)
         {
             struct rela_result result;
-            int res = lookup_linkmap((struct link_map *)*curr_search, real_name, &result);
+            int res = lookup_linkmap((struct NF_link_map *)*curr_search, real_name, &result);
             if(res)
             {
                 /* check different types and fix the address for rela entry here */

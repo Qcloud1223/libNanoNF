@@ -69,7 +69,7 @@ static void NFopen_worker(void *a)
         printf("shared library:%s needs an open mode:", tmp->map->l_name);
         scanf("%d", &tmp_mode);
         Elf64_Addr tmp_addr = 0x0;
-        NF_map(tmp, tmp_mode, tmp_addr);
+        NF_map(tmp, tmp_mode, (void *)tmp_addr);
         tmp = tmp->next;
     }
 
@@ -91,7 +91,13 @@ static void NFopen_worker(void *a)
      * 
      * After all, I'm doing a dynamic loading, and don't need the symbols to be all settled when I enter the program
      */
-    NFreloc(new);
+    tmp = head;
+    while(tmp)
+    {
+        NFreloc(tmp->map);
+        tmp = tmp->next;
+    }
+    //NFreloc(new);
 }
 
 /* mode can contain a bunch of options like symbol relocation style, whether to load, etc. see more at bits/dlfcn.h

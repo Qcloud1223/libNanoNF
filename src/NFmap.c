@@ -68,6 +68,7 @@ static void fill_info(struct NF_link_map *l)
     #define rebase(tag) \
         do \
         {   \
+            if(info[tag])\
             info[tag]->d_un.d_ptr += l -> l_addr; \
         }while(0)
     rebase(DT_SYMTAB);
@@ -116,10 +117,21 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
     /* I'm not doing this because addr is specified */
     //l->l_map_start = (Elf64_Addr) mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE, fd, c->mapoff);
     
-    l->l_map_start = (Elf64_Addr) addr;
+    void *tmp;
+    if(addr)
+    {
+        mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE|MAP_FIXED, fd, c->mapoff);
+        l->l_map_start = (Elf64_Addr) addr;
+    }    
+    else
+    {
+        tmp = mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE, fd, c->mapoff);
+        l->l_map_start = (Elf64_Addr)tmp; //deal with addr when it is 0
+    }
+        
     l->l_map_end = l->l_map_start + maplength;
     l->l_addr = l->l_map_start - c->mapstart;
-    mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE|MAP_FIXED, fd, c->mapoff);
+    //mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE|MAP_FIXED, fd, c->mapoff);
     
     if(has_holes)
     {

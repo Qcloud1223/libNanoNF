@@ -40,7 +40,7 @@ void map_deps(struct NF_link_map *l)
     } while (i->d_tag != DT_NULL);
     
     l->l_runpath = (const char **)malloc(nrunp * sizeof(char *));
-    l->l_search_list = (struct link_map **)calloc(nneeded + 1, sizeof(struct link_map*));
+    l->l_search_list = (struct NF_link_map **)calloc(nneeded + 1, sizeof(struct NF_link_map*));
 
     i = l->l_ld;
     int runpcnt = 0;
@@ -58,7 +58,7 @@ void map_deps(struct NF_link_map *l)
                 //correctly notice outside the program that an error occured, plz search in customed path
                 failed[neededcnt] = name;
             }
-            l->l_search_list[neededcnt++] = (struct link_map *)handle;
+            l->l_search_list[neededcnt++] = (struct NF_link_map *)handle;
         }
         else if (i->d_tag == DT_RUNPATH) //RPATH and RUNPATH are similar, only doing the latter here
         {
@@ -84,7 +84,7 @@ void map_deps(struct NF_link_map *l)
                 if(handle_again)
                 {
                     found = 1;
-                    l->l_search_list[j] = (struct link_map *)handle_again;
+                    l->l_search_list[j] = (struct NF_link_map *)handle_again;
                     break;
                 }
             }

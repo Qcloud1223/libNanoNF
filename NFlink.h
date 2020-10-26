@@ -40,7 +40,7 @@ struct NF_link_map
     const Elf32_Word *l_gnu_chain_zero;
 
     const char **l_runpath; //user-specified custom search path
-    struct link_map **l_search_list; //a list of direct reference of this object
+    struct NF_link_map **l_search_list; //a list of direct reference of this object
 };
 
 /* move the definition of filebuf from NFmap.c here */

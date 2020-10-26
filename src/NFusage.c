@@ -7,8 +7,10 @@
 #include <elf.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 struct NF_list *head = NULL, *tail = NULL;
+uint64_t dissect_and_calculate(struct NF_list *nl);
 #define ALIGN_DOWN(base, size)	((base) & -((__typeof__ (base)) (size)))
 
 uint64_t NFusage(void *ll)
@@ -38,6 +40,7 @@ uint64_t NFusage_worker(const char *name, int mode)
 
     //fill in info needed for dissect
     struct filebuf fb;
+    fb.len = 0;
     size_t retlen = read(fd, fb.buf, sizeof(fb.buf) - fb.len);
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)fb.buf;
     Elf64_Addr maplength = ehdr->e_phnum * sizeof(Elf64_Phdr);
@@ -58,7 +61,7 @@ uint64_t NFusage_worker(const char *name, int mode)
     while(iter != NULL)
     {
         total += dissect_and_calculate(iter);
-        iter++;
+        iter = iter->next;
     }
 
     return total;
@@ -91,14 +94,14 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
         {
             ld = malloc(ph->p_memsz);
             /* though it is not the same time, but it is the same fd... */
-            pread(nl->fd, (void *)ld, ph->p_memsz, ph->p_paddr);
+            pread(nl->fd, (void *)ld, ph->p_memsz, ph->p_offset); //note that offset and paddr are not the same
         }
     }
 
     Elf64_Dyn *str, *dyn = ld, *curr = ld;
     int nrunp = 0, nneeded = 0;
     
-    while(curr->d_tag != NULL)
+    while(curr->d_tag != DT_NULL)
     {
         switch(curr->d_tag)
         {
@@ -115,7 +118,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
         curr++;
     }
     l->l_runpath = (const char **)malloc(nrunp * sizeof(char *));
-    l->l_search_list = (struct link_map **)calloc(nneeded + 1, sizeof(struct link_map*));
+    l->l_search_list = (struct NF_link_map **)calloc(nneeded + 1, sizeof(struct NF_link_map*));
     int runpcnt = 0;
     int neededcnt = 0; //again, this is for filling the search list
     while(dyn->d_tag != DT_NULL)
@@ -134,7 +137,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                     found = 1;
                     break;
                 }
-                tmp++;
+                tmp = tmp->next;
             }
             if(!found)
             {
@@ -149,8 +152,10 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                 //reset the pointers to fit a new element
                 tail->next = tmp;
                 tmp->next = NULL;
+                tail = tmp; //set tail to be the last unique element
                 /* filling the info all over again */
                 struct filebuf fb;
+                fb.len = 0;
                 size_t retlen = read(fd, fb.buf, sizeof(fb.buf) - fb.len);
                 Elf64_Ehdr *ehdr = (Elf64_Ehdr *)fb.buf;
                 Elf64_Addr maplength = ehdr->e_phnum * sizeof(Elf64_Phdr);
@@ -162,7 +167,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                 tmp->map->l_phnum = ehdr->e_phnum;
                 tmp->map->l_phlen = maplength;
                 tmp->map->l_phoff = ehdr->e_phoff;
-                l->l_search_list[++neededcnt] = tmp->map;
+                l->l_search_list[neededcnt++] = tmp->map;
             }
         }
         dyn++;
