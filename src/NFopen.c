@@ -54,8 +54,9 @@ static void NFopen_worker(void *a)
 
     if(head == NULL)
     {
-        printf("Fatal error: NFusage not called before NFopen!");
+        printf("Fatal error: NFusage not called before NFopen!\n");
         //maybe directly exit here?
+        exit(1);
     }
     /* search and load and map, space is allocated here on heap */
     struct NF_link_map *new = NF_map(head, mode, addr);

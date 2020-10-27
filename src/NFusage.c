@@ -64,6 +64,7 @@ uint64_t NFusage_worker(const char *name, int mode)
 
     //not useful for we're using calloc
     //head->next = NULL;
+    init_system_path(); //init default search path before actually working
     struct NF_list *iter = head;
     Elf64_Addr total = 0;
     while(iter != NULL)
@@ -134,8 +135,9 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
     {
         if(dyn->d_tag == DT_RUNPATH)
         {
-            l->l_runpath[runpcnt] = malloc(64);
-            pread(nl->fd, l->l_runpath[runpcnt], 64, str->d_un.d_ptr + dyn->d_un.d_val);
+            char *tmp_name = malloc(64);
+            pread(nl->fd, tmp_name, 64, str->d_un.d_ptr + dyn->d_un.d_val);
+            l->l_runpath[runpcnt] = tmp_name;
             runpcnt++;
         }
         dyn++;
@@ -175,8 +177,10 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                     char buf[128];
                     for(int i = 0;i < runpcnt; i++)
                     {
-                        char *ptr = mempcpy(buf, l->l_search_list[i], strlen(l->l_search_list[i]));
-                        memcpy(ptr, filename, strlen(filename));
+                        char *ptr = mempcpy(buf, l->l_runpath[i], strlen(l->l_runpath[i]));
+                        *ptr = '/'; //add a "/" to make it a path
+                        ptr++;
+                        memcpy(ptr, filename, strlen(filename) + 1); //+1 to copy \0. memcpy only copy num bytes
                         if((fd = open(buf, O_RDONLY)) != -1)
                             break;
                     }
@@ -186,7 +190,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                         for(int i = 0; i< 2;i++)
                         {
                             char *ptr = mempcpy(buf, sys_path[i], strlen(sys_path[i]));
-                            memcpy(ptr, filename, strlen(filename));
+                            memcpy(ptr, filename, strlen(filename) + 1);
                             if((fd = open(buf, O_RDONLY)) != -1)
                                 break;
                         }
