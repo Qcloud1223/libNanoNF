@@ -148,6 +148,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
     {
         if(dyn->d_tag == DT_NEEDED)
         {
+            neededcnt = 0; //neededcnt is DT_NEEDED-wise
             Elf64_Addr offset = dyn->d_un.d_val;
             char *filename = malloc(128); //store the filename for each dependency
             pread(nl->fd, filename, 128, str->d_un.d_ptr + offset); //change from 64 to 128 because the prefix is long
