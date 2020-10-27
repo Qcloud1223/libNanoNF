@@ -159,6 +159,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                 if(!strcmp(filename, tmp->map->l_name))
                 {
                     found = 1;
+                    nl->map->l_search_list[neededcnt++] = tmp->map;
                     break;
                 }
                 tmp = tmp->next;
