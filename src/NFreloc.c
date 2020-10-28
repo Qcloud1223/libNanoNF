@@ -174,6 +174,15 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
         Elf64_Sym *tmp_sym = &symtab[idx >> 32]; //from dynamic symbol table get the symbol
         Elf64_Word name = tmp_sym->st_name;
         const char *real_name = strtab + name; //from string table get the real name of the symbol
+
+        const unsigned long int r_type = it->r_info & 0xffffffff;
+        if(r_type == R_X86_64_IRELATIVE)
+        {
+            void *dest = (void *)(l->l_addr + it->r_offset);
+            *(Elf64_Addr *)dest = l->l_addr + it->r_addend;
+            continue;
+        }
+
         struct NF_link_map **curr_search = l->l_search_list;
         while(*curr_search)
         {
