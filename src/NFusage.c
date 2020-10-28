@@ -127,7 +127,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
         curr++;
     }
     l->l_runpath = (const char **)malloc(nrunp * sizeof(char *));
-    l->l_search_list = (struct NF_link_map **)calloc(nneeded + 1, sizeof(struct NF_link_map*));
+    l->l_search_list = (struct NF_link_map **)calloc(nneeded + 2, sizeof(struct NF_link_map*));
     int runpcnt = 0;
     int neededcnt = 0; //again, this is for filling the search list
 
@@ -225,6 +225,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
         }
         dyn++;
     }
+    l->l_search_list[neededcnt] = l; //quick fix for global variables to relocate
 
     return mapend - mapstart;
 }
