@@ -178,8 +178,12 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
         const unsigned long int r_type = it->r_info & 0xffffffff;
         if(r_type == R_X86_64_IRELATIVE)
         {
+            //the address for ifunc is l->l_addr + it->r_addend
+            Elf64_Addr value = l->l_addr + it->r_addend;
+            value = ((ElfW(Addr) (*) (void)) value) ();
             void *dest = (void *)(l->l_addr + it->r_offset);
-            *(Elf64_Addr *)dest = l->l_addr + it->r_addend;
+            //pointing to the right address
+            *(Elf64_Addr *)dest = value;
             continue;
         }
 
