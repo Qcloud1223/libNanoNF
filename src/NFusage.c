@@ -13,6 +13,7 @@
 struct NF_list *head = NULL, *tail = NULL;
 uint64_t dissect_and_calculate(struct NF_list *nl);
 #define ALIGN_DOWN(base, size)	((base) & -((__typeof__ (base)) (size)))
+#define ALIGN_UP(base, size)	ALIGN_DOWN ((base) + (size) - 1, (size))
 static const char *sys_path[2];
 
 void init_system_path()
@@ -227,6 +228,6 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
     }
     l->l_search_list[neededcnt] = l; //quick fix for global variables to relocate
 
-    nl->len = mapend - mapstart; //use this to get the exact location for next so if we want it compact
-    return mapend - mapstart;
+    nl->len = ALIGN_UP(mapend - mapstart, 4096); //use this to get the exact location for next so if we want it compact
+    return ALIGN_UP(mapend - mapstart, 4096);
 }
