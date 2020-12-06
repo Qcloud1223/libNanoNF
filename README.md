@@ -16,7 +16,9 @@ This function takes a handle opened by ```NFopen``` and finds the location of th
 uint64_t NFusage_worker(const char *name, int mode)
 ```
 This function calculate the space a shared library specified by ``name `` takes up.(already page-aligned)
+
 Note that before ``NFopen``, you must call this function for it resolve the dependencies.
+
 Feel free to place your private heap somewhere next to it.
 
 ## Install
