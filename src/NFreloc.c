@@ -21,6 +21,8 @@
 #include <dlfcn.h>
 #include <string.h> //for strcmp
 
+extern Elf64_Addr REAL_MALLOC; //ask for external, real malloc address
+
 /* a uniform structure for .data and .text relocation */
 struct uniReloc
 {
@@ -84,6 +86,18 @@ dl_new_hash (const char *s)
 
 static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_result *result)
 {
+    /* 
+        TODO: MAKE THIS LESS HARD-CODE
+        If anyone ask for malloc, directly intercept it and return "found"
+        This definitely will cause some problems like even printf is sigfaulting, so check this first
+        if the program is acting weird
+     */
+    if(!strcmp(name, "malloc") && REAL_MALLOC)
+    {
+        result -> addr = REAL_MALLOC;
+        return 1;
+    }
+    
     /* search the symbol table of given link_map to find the occurrence of the symbol
         return 1 upon success and 0 otherwise */
     Elf64_Dyn *dyn = l->l_ld;
