@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <elf.h>
 
+//note that you may want to test your own malloc
+//this variable is hard-coded and is designed to clobber the malloc in shared libraries
 Elf64_Addr REAL_MALLOC = 0x0;
 
 int main()
