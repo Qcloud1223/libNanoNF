@@ -58,6 +58,7 @@ struct NF_list
     int done;
 
     int fd;
+    Elf64_Addr len;
     //const char *name; //get the name from map->l_name
     //struct filebuf fb; // i don't really want to put such a large element inside the list, fix this later
 };

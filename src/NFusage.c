@@ -227,5 +227,6 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
     }
     l->l_search_list[neededcnt] = l; //quick fix for global variables to relocate
 
+    nl->len = mapend - mapstart; //use this to get the exact location for next so if we want it compact
     return mapend - mapstart;
 }

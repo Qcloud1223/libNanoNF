@@ -64,14 +64,17 @@ static void NFopen_worker(void *a)
 
     /* the mapping of dependencies is now controled by the list, so no need for map_deps */
     struct NF_list *tmp = head->next;
+    Elf64_Addr next_addr = (Elf64_Addr) addr + head->len;
     while(tmp)
     {
         //add interactive querying for address here
         int tmp_mode;
-        printf("shared library:%s needs an open mode:", tmp->map->l_name);
-        scanf("%d", &tmp_mode);
-        Elf64_Addr tmp_addr = 0x0;
-        NF_map(tmp, tmp_mode, (void *)tmp_addr);
+        //printf("shared library:%s needs an open mode:", tmp->map->l_name);
+        //scanf("%d", &tmp_mode);
+        //Elf64_Addr tmp_addr = 0x0;
+        //NF_map(tmp, tmp_mode, (void *)tmp_addr);
+        NF_map(tmp, tmp_mode, (void *) next_addr);
+        next_addr += tmp->len;
         tmp = tmp->next;
     }
 
