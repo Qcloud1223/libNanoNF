@@ -91,11 +91,11 @@ static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_r
         This definitely will cause some problems like even printf is sigfaulting, so check this first
         if the program is acting weird
      */
-    if (!strcmp(name, "malloc") && REAL_MALLOC)
-    {
-        result->addr = REAL_MALLOC;
-        return 1;
-    }
+    // if (!strcmp(name, "malloc") && REAL_MALLOC)
+    // {
+    //     result->addr = REAL_MALLOC;
+    //     return 1;
+    // }
 
     /* search the symbol table of given link_map to find the occurrence of the symbol
         return 1 upon success and 0 otherwise */
