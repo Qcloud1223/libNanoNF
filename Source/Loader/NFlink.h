@@ -15,15 +15,15 @@
 struct NF_link_map
 {
     uint64_t l_addr; //the base address of a so
-    char* l_name; //the absolute path
+    char *l_name;    //the absolute path
     //the dynamic section?
     Elf64_Dyn *l_ld;
     struct NF_link_map *l_prev, *l_next;
 
     uint64_t l_map_start, l_map_end; //the start and end location of a so
-    uint16_t l_phnum; //program header count
-    uint16_t l_ldnum; //load segment count
-    Elf64_Addr l_phlen; //total length of the program headers
+    uint16_t l_phnum;                //program header count
+    uint16_t l_ldnum;                //load segment count
+    Elf64_Addr l_phlen;              //total length of the program headers
     Elf64_Addr l_phoff;
     Elf64_Phdr *l_phdr; //the address of program header table
 
@@ -39,7 +39,7 @@ struct NF_link_map
     const Elf32_Word *l_gnu_buckets;
     const Elf32_Word *l_gnu_chain_zero;
 
-    const char **l_runpath; //user-specified custom search path
+    const char **l_runpath;             //user-specified custom search path
     struct NF_link_map **l_search_list; //a list of direct reference of this object
 };
 
@@ -47,12 +47,12 @@ struct NF_link_map
 struct filebuf
 {
     long len;
-    char buf[832] __attribute__ ((aligned (__alignof(Elf64_Ehdr))));
+    char buf[832] __attribute__((aligned(__alignof(Elf64_Ehdr))));
 };
 
 /* data structure to store the search path information, filled in NFusage, and later used in NFmap */
 struct NF_list
-{ 
+{
     struct NF_link_map *map;
     struct NF_list *next;
     int done;
@@ -66,4 +66,3 @@ struct NF_list
 extern struct NF_list *head, *tail;
 
 #endif
-

@@ -19,8 +19,8 @@
 #include <stdint.h>
 
 /* helper to get an aligned address */
-#define ALIGN_DOWN(base, size)	((base) & -((__typeof__ (base)) (size)))
-#define ALIGN_UP(base, size)	ALIGN_DOWN ((base) + (size) - 1, (size))
+#define ALIGN_DOWN(base, size) ((base) & -((__typeof__(base))(size)))
+#define ALIGN_UP(base, size) ALIGN_DOWN((base) + (size)-1, (size))
 /* according to dl-load.h, this is the correct way to map a so */
 #define MAP_COPY (MAP_PRIVATE | MAP_DENYWRITE)
 
@@ -35,9 +35,9 @@
 /* struct to store PT_LOAD info */
 struct loadcmd
 {
-  Elf64_Addr mapstart, mapend, dataend, allocend;
-  Elf64_Off mapoff;
-  int prot;                             /* PROT_* bits.  */
+    Elf64_Addr mapstart, mapend, dataend, allocend;
+    Elf64_Off mapoff;
+    int prot; /* PROT_* bits.  */
 };
 
 static void fill_info(struct NF_link_map *l)
@@ -53,24 +53,24 @@ static void fill_info(struct NF_link_map *l)
 
     while (dyn->d_tag != DT_NULL)
     {
-        if ((Elf64_Xword) dyn->d_tag < DT_NUM)
-	        info[dyn->d_tag] = dyn;
-        else if ((Elf64_Xword) dyn->d_tag == DT_RELACOUNT)
+        if ((Elf64_Xword)dyn->d_tag < DT_NUM)
+            info[dyn->d_tag] = dyn;
+        else if ((Elf64_Xword)dyn->d_tag == DT_RELACOUNT)
             //info[ DT_NUM + (DT_VERNEEDNUM - dyn->d_tag)] = dyn; //this is a quick fix for relacount
             info[34] = dyn;
-        else if ((Elf64_Xword) dyn->d_tag == DT_GNU_HASH)
+        else if ((Elf64_Xword)dyn->d_tag == DT_GNU_HASH)
             info[35] = dyn;
-        //upd: Use fixed index instead of lots of unreadable macros 
+        //upd: Use fixed index instead of lots of unreadable macros
         ++dyn;
         /* OS specific flags are currently omitted */
     }
-    /* at this time, the link map is loaded. So dynamic sections using ptr should be rebased here */
-    #define rebase(tag) \
-        do \
-        {   \
-            if(info[tag])\
-            info[tag]->d_un.d_ptr += l -> l_addr; \
-        }while(0)
+/* at this time, the link map is loaded. So dynamic sections using ptr should be rebased here */
+#define rebase(tag)                             \
+    do                                          \
+    {                                           \
+        if (info[tag])                          \
+            info[tag]->d_un.d_ptr += l->l_addr; \
+    } while (0)
     rebase(DT_SYMTAB);
     rebase(DT_STRTAB);
     rebase(DT_RELA);
@@ -94,7 +94,7 @@ static void setup_hash(struct NF_link_map *l)
     l->l_gnu_bitmask_idxbits = bitmask_nwords - 1;
     l->l_gnu_shift = *hash32++;
 
-    l->l_gnu_bitmask = (Elf64_Addr *) hash32;
+    l->l_gnu_bitmask = (Elf64_Addr *)hash32;
     hash32 += 64 / 32 * bitmask_nwords;
 
     l->l_gnu_buckets = hash32;
@@ -104,7 +104,7 @@ static void setup_hash(struct NF_link_map *l)
 
 //get rid of ehdr because filebuf will not be in NFmap now. It is restricted to NFusage.
 static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *loadcmds, int nloadcmds,
-                      bool has_holes, int fd, size_t maplength)
+                         bool has_holes, int fd, size_t maplength)
 //                    bool has_holes, int fd, size_t maplength, Elf64_Ehdr *e)
 {
     /* here we mmap the segments into memory
@@ -116,75 +116,72 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
     struct loadcmd *c = loadcmds;
     /* I'm not doing this because addr is specified */
     //l->l_map_start = (Elf64_Addr) mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE, fd, c->mapoff);
-    
+
     void *tmp;
-    if(addr)
+    if (addr)
     {
-        mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE|MAP_FIXED, fd, c->mapoff);
-        l->l_map_start = (Elf64_Addr) addr;
-    }    
+        mmap(addr, maplength, c->prot, MAP_COPY | MAP_FILE | MAP_FIXED, fd, c->mapoff);
+        l->l_map_start = (Elf64_Addr)addr;
+    }
     else
     {
-        tmp = mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE, fd, c->mapoff);
+        tmp = mmap(addr, maplength, c->prot, MAP_COPY | MAP_FILE, fd, c->mapoff);
         l->l_map_start = (Elf64_Addr)tmp; //deal with addr when it is 0
     }
-        
+
     l->l_map_end = l->l_map_start + maplength;
     l->l_addr = l->l_map_start - c->mapstart;
     //mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE|MAP_FIXED, fd, c->mapoff);
-    
-    if(has_holes)
+
+    if (has_holes)
     {
         /* This is bad because it assume only the first LOAD contains executable pages
          * While in fact it is not
          */
-        mprotect((void *) (l->l_map_start + c->mapend - c->mapstart), 
-            loadcmds[nloadcmds - 1].mapstart - c->mapend,
-            PROT_NONE);
+        mprotect((void *)(l->l_map_start + c->mapend - c->mapstart),
+                 loadcmds[nloadcmds - 1].mapstart - c->mapend,
+                 PROT_NONE);
     }
 
-    while(c < &loadcmds[nloadcmds])
+    while (c < &loadcmds[nloadcmds])
     {
-        mmap((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot,
-            MAP_FILE|MAP_COPY|MAP_FIXED,
-            fd, c->mapoff);
-        
-        if(l->l_phdr == 0 &&
+        mmap((void *)(l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot,
+             MAP_FILE | MAP_COPY | MAP_FIXED,
+             fd, c->mapoff);
+
+        if (l->l_phdr == 0 &&
             l->l_phoff >= c->mapoff &&
-            (size_t) (c->mapend - c->mapstart + c->mapoff) >= l->l_phoff + l->l_phnum * sizeof(Elf64_Phdr) )
+            (size_t)(c->mapend - c->mapstart + c->mapoff) >= l->l_phoff + l->l_phnum * sizeof(Elf64_Phdr))
             /* find the segment that contains PHT */
             /* note that PHT may or may not be a seperate segment, and may or may not be included by a LOAD seg */
-            l->l_phdr = (void *) (uintptr_t) (c->mapstart + l->l_phoff
-                                      - c->mapoff);
-        
+            l->l_phdr = (void *)(uintptr_t)(c->mapstart + l->l_phoff - c->mapoff);
+
         /* only .bss will cause this */
-        if(c->allocend > c->dataend)
+        if (c->allocend > c->dataend)
         {
             Elf64_Addr zero, zeroend, zeropage;
             zero = l->l_addr + c->dataend; //where zero should start
             zeroend = l->l_addr + c->allocend;
             zeropage = (zero + 4095) & (~4095);
 
-            if(zeroend < zeropage)
+            if (zeroend < zeropage)
                 zeropage = zeroend;
-            
-            if(zeropage > zero)
+
+            if (zeropage > zero)
             {
                 /* In this case we have some .bss here */
                 memset((void *)zero, '\0', zeropage - zero);
-
             }
 
-            if(zeroend > zeropage)
+            if (zeroend > zeropage)
             {
                 /* need new page to store tons of bss variables here */
                 mmap((void *)zeropage, ALIGN_UP(zeroend, 4096) - zeropage,
-                    c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED, -1, 0);
+                     c->prot, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
             }
         }
         ++c;
     }
-
 }
 
 /* load an NF_link_map specified by nl->map */
@@ -201,7 +198,7 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
 
     /* just cram into buf as much as you can */
     /* use a do-while can assure this event won't be interrupted */
-    //size_t retlen = read(fd, fb.buf, sizeof(fb.buf) - fb.len); 
+    //size_t retlen = read(fd, fb.buf, sizeof(fb.buf) - fb.len);
 
     /* the information we get from ehdr is merely phnum, total length of all program headers, and offset for program headers
      * so we dump filebuf in NF_list, instead it is added as NF_link_map members
@@ -210,7 +207,6 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
     //Elf64_Ehdr *ehdr = (Elf64_Ehdr *)nl->fb.buf;
     //size_t maplength = ehdr->e_phnum * sizeof(Elf64_Phdr);
 
-    
     /* create a new link map, and fill in header table info */
     //struct NF_link_map *l = calloc(sizeof(struct NF_link_map), 1);
     //l->l_phnum = ehdr->e_phnum;
@@ -233,7 +229,7 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
 
     Elf64_Phdr *ph;
     /* travese the segments! */
-    for(ph = phdr; ph < &phdr[l->l_phnum]; ++ph)
+    for (ph = phdr; ph < &phdr[l->l_phnum]; ++ph)
     {
         switch (ph->p_type)
         {
@@ -242,14 +238,14 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
             /* load and add it to loadcmds */
             struct loadcmd *c = &loadcmds[nloadcmds++]; //get the current loaction in loadcmds
             /* TODO: pagesize are set to 4096 for simplicity */
-            c->mapstart = ALIGN_DOWN (ph->p_vaddr, 4096);
-	        c->mapend = ALIGN_UP (ph->p_vaddr + ph->p_filesz, 4096);
-	        c->dataend = ph->p_vaddr + ph->p_filesz;
-	        c->allocend = ph->p_vaddr + ph->p_memsz;
-	        c->mapoff = ALIGN_DOWN (ph->p_offset, 4096);
+            c->mapstart = ALIGN_DOWN(ph->p_vaddr, 4096);
+            c->mapend = ALIGN_UP(ph->p_vaddr + ph->p_filesz, 4096);
+            c->dataend = ph->p_vaddr + ph->p_filesz;
+            c->allocend = ph->p_vaddr + ph->p_memsz;
+            c->mapoff = ALIGN_DOWN(ph->p_offset, 4096);
 
             /* hey ELF, is it your last segment? */
-            if(nloadcmds > 1 && c[-1].mapend != c->mapstart)
+            if (nloadcmds > 1 && c[-1].mapend != c->mapstart)
                 has_holes = true;
 
             /* setting the protection of this segment. may have errors */
@@ -265,7 +261,7 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
             /* or it may not exist at all, in which case it says "use ld.so to find it in a LOAD segment" */
             l->l_phdr = (void *)ph->p_vaddr;
             break;
-        
+
         case PT_DYNAMIC:
             /* the dynamic section */
             l->l_ld = (void *)ph->p_vaddr;
@@ -281,17 +277,17 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
     size_t maplength = loadcmds[nloadcmds - 1].allocend - loadcmds[0].mapstart;
     map_segments(l, addr, loadcmds, nloadcmds, has_holes, nl->fd, maplength);
 
-    if(l->l_phdr == NULL)
-    /* This is expected. I don't know why l_phdr is not allocated 
+    if (l->l_phdr == NULL)
+        /* This is expected. I don't know why l_phdr is not allocated 
      * It's probably because of capatiabilty issue, sigh
      */
         l->l_phdr = phdr;
-    
+
     /* After loading, the absolute address is set, now relocate the PHT */
-    l->l_phdr = (Elf64_Phdr *) ((Elf64_Addr) l->l_phdr + l->l_addr);
+    l->l_phdr = (Elf64_Phdr *)((Elf64_Addr)l->l_phdr + l->l_addr);
 
     /* rebasing ld to prevent SIGSEGV */
-    l->l_ld = (Elf64_Dyn *) ((Elf64_Addr) l->l_ld + l->l_addr);
+    l->l_ld = (Elf64_Dyn *)((Elf64_Addr)l->l_ld + l->l_addr);
     /* indexing the l_ld into l_info */
     fill_info(l);
 
