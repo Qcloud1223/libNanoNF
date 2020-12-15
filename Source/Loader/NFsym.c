@@ -3,7 +3,7 @@
  * But now, for simplicity, I just search it linearly
  */
 
-#include "../NFlink.h"
+#include "NFlink.h"
 #include <elf.h>
 #include <stdlib.h> //for NULL
 #include <string.h>

@@ -20,7 +20,7 @@
  * Email: qcloud1014 at gmail.com
  */
 
-#include "../NFlink.h"
+#include "NFlink.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>

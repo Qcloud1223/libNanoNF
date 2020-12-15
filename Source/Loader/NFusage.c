@@ -1,6 +1,6 @@
 /* return the memory usage of a shared object */
 #define _GNU_SOURCE //for mempcpy
-#include "../NFlink.h"
+#include "NFlink.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h> //for syscall open

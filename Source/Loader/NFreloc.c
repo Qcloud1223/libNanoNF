@@ -14,7 +14,7 @@
  * readelf --relocs can show the relocation entries
 */
 
-#include "../NFlink.h"
+#include "NFlink.h"
 #include <elf.h>
 #include <link.h> //we have to search link_map here
 #include <stdint.h>
