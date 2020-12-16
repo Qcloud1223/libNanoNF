@@ -27,7 +27,7 @@ make
 cd sample
 make lib
 make
-./ori-malloc
+./ori-malloc.out
 # open another terminal
 cat /proc/$(pgrep ori-malloc)/maps
 ```

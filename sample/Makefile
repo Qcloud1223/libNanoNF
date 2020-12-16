@@ -1,5 +1,5 @@
 sample: ori-malloc.o
-	gcc -o ori-malloc.out ori-malloc.o -L.. -Wl,-rpath,.. -lNanoNF
+	gcc -o ori-malloc.out ori-malloc.o -g -L.. -Wl,-rpath,.. -lNanoNF
 
 ori-malloc.o: ori-malloc.c
 	gcc -c ori-malloc.c -g
