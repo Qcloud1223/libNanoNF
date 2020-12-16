@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include <sys/mman.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <errno.h>
 
 /* helper to get an aligned address */
 #define ALIGN_DOWN(base, size) ((base) & -((__typeof__(base))(size)))
@@ -120,13 +122,24 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
     void *tmp;
     if (addr)
     {
-        mmap(addr, maplength, c->prot, MAP_COPY | MAP_FILE | MAP_FIXED, fd, c->mapoff);
-        l->l_map_start = (Elf64_Addr)addr;
-    }
+        //mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE|MAP_FIXED, fd, c->mapoff);
+        //pread(fd, addr, maplength, c->mapoff);
+        int stat = mprotect(addr, maplength, c->prot | PROT_WRITE);
+        //this violate the original protection, which is bad...
+        //but we are always legal to write on a heap
+        if(stat)
+        {
+            printf("error when calling mprotect, and the error code is %d\n", errno);
+            exit(-1);
+        }
+        l->l_map_start = (Elf64_Addr) addr;
+    }    
     else
     {
-        tmp = mmap(addr, maplength, c->prot, MAP_COPY | MAP_FILE, fd, c->mapoff);
-        l->l_map_start = (Elf64_Addr)tmp; //deal with addr when it is 0
+        //tmp = mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE, fd, c->mapoff);
+        //l->l_map_start = (Elf64_Addr)tmp; //deal with addr when it is 0
+        printf("please map the so in a malloc'd region\n");
+        exit(-1);
     }
 
     l->l_map_end = l->l_map_start + maplength;
@@ -145,11 +158,13 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
 
     while (c < &loadcmds[nloadcmds])
     {
-        mmap((void *)(l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot,
-             MAP_FILE | MAP_COPY | MAP_FIXED,
-             fd, c->mapoff);
-
-        if (l->l_phdr == 0 &&
+        //mmap((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot,
+        //    MAP_FILE|MAP_COPY|MAP_FIXED,
+        //    fd, c->mapoff);
+        pread(fd, (void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->mapoff);
+        mprotect((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot | PROT_WRITE); //may have issues
+        
+        if(l->l_phdr == 0 &&
             l->l_phoff >= c->mapoff &&
             (size_t)(c->mapend - c->mapstart + c->mapoff) >= l->l_phoff + l->l_phnum * sizeof(Elf64_Phdr))
             /* find the segment that contains PHT */
@@ -176,8 +191,8 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
             if (zeroend > zeropage)
             {
                 /* need new page to store tons of bss variables here */
-                mmap((void *)zeropage, ALIGN_UP(zeroend, 4096) - zeropage,
-                     c->prot, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
+                //mmap((void *)zeropage, ALIGN_UP(zeroend, 4096) - zeropage,
+                //    c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED, -1, 0);
             }
         }
         ++c;
