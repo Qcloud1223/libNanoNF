@@ -64,7 +64,7 @@ static void NFopen_worker(void *a)
 
     /* the mapping of dependencies is now controled by the list, so no need for map_deps */
     struct NF_list *tmp = head->next;
-    Elf64_Addr next_addr = (Elf64_Addr) addr + head->len;
+    Elf64_Addr next_addr = (Elf64_Addr) new->l_addr + head->len; //use l_addr instead of addr in case of 0
 
     while(tmp)
     {
