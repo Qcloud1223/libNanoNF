@@ -1,4 +1,6 @@
 #include "Loader.h"
+#include "Heap.h"
+#include "Global.h"
 #include <malloc.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -28,19 +30,34 @@ char getch(void)
     return buf;
 }
 
+// heap size: 20MB
+#define HEAP_SIZE (64u << 20u)
+
 int main()
 {
     Library *lib_1 = CreateLibrary("lib_1.so");
-    lib_1->address = memalign(getpagesize(), lib_1->size);
-    printf("load lib_1.so to %p\n", lib_1->address);
-    ProxyRecord records[] = {{NULL, NULL}};
+    lib_1->address = memalign(getpagesize(), lib_1->size + HEAP_SIZE);
+    printf("lib_1.so loading address: %p\n", lib_1->address);
+
+    printf("create heap for lib_1 at %p\n", lib_1->address + lib_1->size);
+    Heap *libHeap = CreateHeap(lib_1->address + lib_1->size, HEAP_SIZE);
+
+    ProxyRecord records[] = {
+        {"malloc", GlobalMalloc},
+        {"realloc", GlobalRealloc},
+        {"calloc", GlobalCalloc},
+        {"free", GlobalFree}};
     LoadLibrary(lib_1, records);
+
+    SetCurrentHeap(libHeap);
     void (*p1)() = GetFunction(lib_1, "p1");
     p1();
 
     printf("press any key to exit...");
     getch();
     printf("\n");
+
+    free(lib_1->address);
     ReleaseLibrary(lib_1);
     return 0;
 }

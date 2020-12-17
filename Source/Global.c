@@ -2,7 +2,7 @@
 
 #include "Global.h"
 
-static Heap *globalCurrent;
+static Heap *globalCurrent = NULL;
 
 void SetCurrentHeap(Heap *heap)
 {

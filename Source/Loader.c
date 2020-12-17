@@ -32,9 +32,5 @@ void *GetFunction(Library *lib, const char *name)
 void ReleaseLibrary(Library *lib)
 {
     // todo: internally close
-    if (lib->address)
-    {
-        free(lib->address);
-    }
     free(lib);
 }
