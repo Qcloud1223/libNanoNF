@@ -18,11 +18,11 @@ typedef struct
 {
     const char *name;
     void *pointer;
-} ProxyFunction;
+} ProxyRecord;
 
 Library *CreateLibrary(const char *file);
 
-int LoadLibrary(Library *library, ProxyFunction proxy[]);
+int LoadLibrary(Library *library, ProxyRecord records[]);
 
 void *GetFunction(Library *library, const char *name);
 

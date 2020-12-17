@@ -18,9 +18,9 @@ Library *CreateLibrary(const char *file)
     return lib;
 }
 
-int LoadLibrary(Library *lib, ProxyFunction proxy[])
+int LoadLibrary(Library *lib, ProxyRecord records[])
 {
-    lib->internal = NFopen(lib->file, 0, lib->address);
+    lib->internal = NFopen(lib->file, 0, lib->address, records);
     return lib->internal != NULL;
 }
 

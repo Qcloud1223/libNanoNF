@@ -33,8 +33,8 @@ int main()
     Library *lib_1 = CreateLibrary("lib_1.so");
     lib_1->address = memalign(getpagesize(), lib_1->size);
     printf("load lib_1.so to %p\n", lib_1->address);
-    ProxyFunction proxy[] = {{NULL, NULL}};
-    LoadLibrary(lib_1, proxy);
+    ProxyRecord records[] = {{NULL, NULL}};
+    LoadLibrary(lib_1, records);
     void (*p1)() = GetFunction(lib_1, "p1");
     p1();
 

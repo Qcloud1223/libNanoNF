@@ -14,7 +14,7 @@
  * readelf --relocs can show the relocation entries
 */
 
-#include "NFlink.h"
+#include "NanoNF.h"
 #include <elf.h>
 #include <link.h> //we have to search link_map here
 #include <stdint.h>
@@ -83,19 +83,16 @@ dl_new_hash(const char *s)
     return h & 0xffffffff;
 }
 
-static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_result *result)
+static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_result *result, ProxyRecord *records)
 {
-    /* 
-        TODO: MAKE THIS LESS HARD-CODE
-        If anyone ask for malloc, directly intercept it and return "found"
-        This definitely will cause some problems like even printf is sigfaulting, so check this first
-        if the program is acting weird
-     */
-    // if (!strcmp(name, "malloc") && REAL_MALLOC)
-    // {
-    //     result->addr = REAL_MALLOC;
-    //     return 1;
-    // }
+    for (int i = 0; records[i].pointer; i += 1)
+    {
+        if (strcmp(records[i].name, name) == 0)
+        {
+            result->addr = (Elf64_Addr)records[i].pointer;
+            return 1;
+        }
+    }
 
     /* search the symbol table of given link_map to find the occurrence of the symbol
         return 1 upon success and 0 otherwise */
@@ -154,7 +151,7 @@ static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_r
     return 0; //not this link_map
 }
 
-static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
+static void do_reloc(struct NF_link_map *l, struct uniReloc *ur, ProxyRecord *records)
 {
     Elf64_Rela *r = (void *)ur->start;
     Elf64_Rela *r_end = r + ur->nrelative;
@@ -201,7 +198,7 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
         while (*curr_search)
         {
             struct rela_result result;
-            int res = lookup_linkmap((struct NF_link_map *)*curr_search, real_name, &result);
+            int res = lookup_linkmap((struct NF_link_map *)*curr_search, real_name, &result, records);
             if (res)
             {
                 /* check different types and fix the address for rela entry here */
@@ -217,7 +214,7 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur)
     //dlclose(handle);
 }
 
-void NFreloc(struct NF_link_map *l)
+void NFreloc(struct NF_link_map *l, ProxyRecord *records)
 {
     /* set up range[0] for relative reloc and global vars */
     if (l->l_info[DT_RELA])
@@ -236,7 +233,7 @@ void NFreloc(struct NF_link_map *l)
 
     /* do actucal reloc here using ranges set up */
     for (int i = 0; i < 2; ++i)
-        do_reloc(l, &ranges[i]);
+        do_reloc(l, &ranges[i], records);
 
     /* UPD: this is totally wrong, for unload search list should be in the destructor of the NF */
     /* NFclose function should take care of this */
