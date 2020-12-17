@@ -83,7 +83,7 @@ dl_new_hash(const char *s)
     return h & 0xffffffff;
 }
 
-static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_result *result, ProxyRecord *records)
+static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_result *result, const ProxyRecord *records)
 {
     for (int i = 0; records[i].pointer; i += 1)
     {
@@ -151,7 +151,7 @@ static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_r
     return 0; //not this link_map
 }
 
-static void do_reloc(struct NF_link_map *l, struct uniReloc *ur, ProxyRecord *records)
+static void do_reloc(struct NF_link_map *l, struct uniReloc *ur, const ProxyRecord *records)
 {
     Elf64_Rela *r = (void *)ur->start;
     Elf64_Rela *r_end = r + ur->nrelative;
@@ -214,7 +214,7 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur, ProxyRecord *re
     //dlclose(handle);
 }
 
-void NFreloc(struct NF_link_map *l, ProxyRecord *records)
+void NFreloc(struct NF_link_map *l, const ProxyRecord *records)
 {
     /* set up range[0] for relative reloc and global vars */
     if (l->l_info[DT_RELA])

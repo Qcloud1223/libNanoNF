@@ -22,7 +22,7 @@ typedef struct
 
 Library *CreateLibrary(const char *file);
 
-int LoadLibrary(Library *library, ProxyRecord records[]);
+int LoadLibrary(Library *library, const ProxyRecord records[]);
 
 void *GetFunction(Library *library, const char *name);
 

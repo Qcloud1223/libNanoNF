@@ -18,6 +18,7 @@ add_library(NoMalloc
     Source/Loader/NFsym.c
     Source/Loader/NFusage.c
     Source/Loader.c
+    Source/Box.c
 )
 target_include_directories(NoMalloc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 
@@ -31,3 +32,6 @@ add_test(NAME TestHeap COMMAND TestHeap)
 add_library(_1 SHARED Examples/lib1.c)
 add_executable(ori-malloc Examples/ori-malloc.c)
 target_link_libraries(ori-malloc NoMalloc)
+
+add_executable(OneBoxOneFuncOnce Examples/OneBoxOneFuncOnce.c)
+target_link_libraries(OneBoxOneFuncOnce NoMalloc)
