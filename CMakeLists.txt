@@ -30,8 +30,11 @@ add_test(NAME TestHeap COMMAND TestHeap)
 
 # maybe better name later
 add_library(_1 SHARED Examples/lib1.c)
+
 add_executable(ori-malloc Examples/ori-malloc.c)
+target_include_directories(ori-malloc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 target_link_libraries(ori-malloc NoMalloc)
 
 add_executable(OneBoxOneFuncOnce Examples/OneBoxOneFuncOnce.c)
+target_include_directories(OneBoxOneFuncOnce PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 target_link_libraries(OneBoxOneFuncOnce NoMalloc)
