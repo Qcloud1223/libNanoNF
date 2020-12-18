@@ -20,14 +20,14 @@
  * Email: qcloud1014 at gmail.com
  */
 
-#include "../NFlink.h"
+#include "NanoNF.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 
 //extern struct NF_link_map *NF_map(const char *file, int mode, void *addr);
 extern struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr);
-extern void NFreloc(struct NF_link_map *l);
+extern void NFreloc(struct NF_link_map *l, const ProxyRecord *records);
 extern void map_deps(struct NF_link_map *l);
 
 struct NFopen_args
@@ -45,7 +45,7 @@ struct NFopen_args
  * some internal dlopen might call worker directly, e.g. -ldl also dynamically loaded the lib
  * but dlerror cannot be used in this case
  */
-static void NFopen_worker(void *a)
+static void NFopen_worker(void *a, const ProxyRecord *records)
 {
     struct NFopen_args *args = a;
     const char *file = args->file;
@@ -102,7 +102,7 @@ static void NFopen_worker(void *a)
     tmp->map->l_prev = NULL;
     while(tmp)
     {
-        NFreloc(tmp->map);
+        NFreloc(tmp->map, records);
         if(tmp->next)
         {
             tmp->map->l_next = tmp->next->map;
@@ -134,7 +134,7 @@ static void NFopen_worker(void *a)
  * so it's better got passed to every func on call chain
  */
 
-void *NFopen(const char* file, int mode, void *addr)
+void *NFopen(const char* file, int mode, void *addr, const ProxyRecord *records)
 {
     /* no need for a __NFopen because no static link would be used */
 
@@ -144,7 +144,7 @@ void *NFopen(const char* file, int mode, void *addr)
     a.mode = mode;
     a.addr = addr;
 
-    NFopen_worker(&a);
+    NFopen_worker(&a, records);
 
     return a.new;  //the base address of the link_map
 }

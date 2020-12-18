@@ -1,35 +1,19 @@
 # libNanoNF
-A library to load an ELF into a specific location
 
-## Intro
-```c
-void *NFopen(const char* file, int mode, void *addr)
+*or NoMalloc suggested by sgdXBC*
+
+A lightweight sandbox library. Full functionality to build application which load library and run it with controlled memory region - the library could not touch any memory outside its private heap, and both heap and global storage's location could be customized.
+
+To build from source:
+
 ```
-This function loads an ELF specificed by filename **file** into designated address **addr**, and returns a handle for future use.
-
-```c
-void *NFsym(void *l, const char *s)
+$ mkdir build && cd build
+$ cmake ..
+$ make
 ```
-This function takes a handle opened by ```NFopen``` and finds the location of the symbol named **s**.
 
-```c
-uint64_t NFusage_worker(const char *name, int mode)
-```
-This function calculate the space a shared library specified by ``name `` takes up.(already page-aligned)
+And `libNoMalloc.a` and example execuables will be built inside `build` directory.
 
-Note that before ``NFopen``, you must call this function for it resolve the dependencies.
+It is recommend to use VS Code with CMake extension for development.
 
-Feel free to place your private heap somewhere next to it.
-
-## Install
-```bash
-make
-cd sample
-make lib
-make
-./ori-malloc.out
-# open another terminal
-cat /proc/$(pgrep ori-malloc)/maps
-```
-This is the simplest example you can run and check if the shared library and their dependencies are loaded compactly, 
-and in the libc practice are not.
+The library provides a set of easy-to-use interfaces in `Include/Box.h`. See the source and comments of `Examples/OneBoxOneFuncOnce.c` for explaination of them. You can also use other low-level interfaces if you like.

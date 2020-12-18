@@ -1,6 +1,6 @@
 /* return the memory usage of a shared object */
 #define _GNU_SOURCE //for mempcpy
-#include "../NFlink.h"
+#include "NFlink.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h> //for syscall open
@@ -12,8 +12,8 @@
 
 struct NF_list *head = NULL, *tail = NULL;
 uint64_t dissect_and_calculate(struct NF_list *nl);
-#define ALIGN_DOWN(base, size)	((base) & -((__typeof__ (base)) (size)))
-#define ALIGN_UP(base, size)	ALIGN_DOWN ((base) + (size) - 1, (size))
+#define ALIGN_DOWN(base, size) ((base) & -((__typeof__(base))(size)))
+#define ALIGN_UP(base, size) ALIGN_DOWN((base) + (size)-1, (size))
 static const char *sys_path[2];
 
 void init_system_path()
@@ -38,7 +38,7 @@ uint64_t NFusage_worker(const char *name, int mode)
      * before NFopen returns, the list should be freed.
      */
     int fd = open(name, O_RDONLY);
-    if(fd == -1)
+    if (fd == -1)
     {
         //check the DT_RUNPATH of current map
         printf("In mapping %s as an NF: file not found\n", name);
@@ -68,7 +68,7 @@ uint64_t NFusage_worker(const char *name, int mode)
     init_system_path(); //init default search path before actually working
     struct NF_list *iter = head;
     Elf64_Addr total = 0;
-    while(iter != NULL)
+    while (iter != NULL)
     {
         total += dissect_and_calculate(iter);
         iter = iter->next;
@@ -92,15 +92,15 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
     /* now dealing with the program headers, from which we need to 
        access the PT_LOAD for memory it takes up, and 
        PT_DYNAMIC for the contents of .dynamic */
-    for(Elf64_Phdr *ph = phdr;ph < &phdr[phnum]; ++ph)
+    for (Elf64_Phdr *ph = phdr; ph < &phdr[phnum]; ++ph)
     {
-        if(ph->p_type == PT_LOAD)
+        if (ph->p_type == PT_LOAD)
         {
-            if(mapstart < 0)
+            if (mapstart < 0)
                 mapstart = ALIGN_DOWN(ph->p_vaddr, 4096);
             mapend = ph->p_vaddr + ph->p_memsz;
         }
-        else if(ph->p_type == PT_DYNAMIC)
+        else if (ph->p_type == PT_DYNAMIC)
         {
             ld = malloc(ph->p_memsz);
             /* though it is not the same time, but it is the same fd... */
@@ -110,31 +110,31 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
 
     Elf64_Dyn *str, *dyn = ld, *curr = ld;
     int nrunp = 0, nneeded = 0;
-    
-    while(curr->d_tag != DT_NULL)
+
+    while (curr->d_tag != DT_NULL)
     {
-        switch(curr->d_tag)
+        switch (curr->d_tag)
         {
-            case DT_STRTAB:
-                str = curr;
-                break;
-            case DT_NEEDED:
-                nneeded++;
-                break;
-            case DT_RUNPATH:
-                nrunp++;
-                break;
+        case DT_STRTAB:
+            str = curr;
+            break;
+        case DT_NEEDED:
+            nneeded++;
+            break;
+        case DT_RUNPATH:
+            nrunp++;
+            break;
         }
         curr++;
     }
     l->l_runpath = (const char **)malloc(nrunp * sizeof(char *));
-    l->l_search_list = (struct NF_link_map **)calloc(nneeded + 2, sizeof(struct NF_link_map*));
+    l->l_search_list = (struct NF_link_map **)calloc(nneeded + 2, sizeof(struct NF_link_map *));
     int runpcnt = 0;
     int neededcnt = 0; //again, this is for filling the search list
 
     while (dyn->d_tag != DT_NULL)
     {
-        if(dyn->d_tag == DT_RUNPATH)
+        if (dyn->d_tag == DT_RUNPATH)
         {
             char *tmp_name = malloc(64);
             pread(nl->fd, tmp_name, 64, str->d_un.d_ptr + dyn->d_un.d_val);
@@ -143,21 +143,21 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
         }
         dyn++;
     }
-    
+
     dyn = ld;
-    while(dyn->d_tag != DT_NULL)
+    while (dyn->d_tag != DT_NULL)
     {
-        if(dyn->d_tag == DT_NEEDED)
+        if (dyn->d_tag == DT_NEEDED)
         {
             neededcnt = 0; //neededcnt is DT_NEEDED-wise
             Elf64_Addr offset = dyn->d_un.d_val;
-            char *filename = malloc(128); //store the filename for each dependency
+            char *filename = malloc(128);                           //store the filename for each dependency
             pread(nl->fd, filename, 128, str->d_un.d_ptr + offset); //change from 64 to 128 because the prefix is long
             struct NF_list *tmp = head;
             int found = 0;
-            while(tmp != NULL)
+            while (tmp != NULL)
             {
-                if(!strcmp(filename, tmp->map->l_name))
+                if (!strcmp(filename, tmp->map->l_name))
                 {
                     found = 1;
                     nl->map->l_search_list[neededcnt++] = tmp->map;
@@ -165,42 +165,41 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                 }
                 tmp = tmp->next;
             }
-            if(!found)
+            if (!found)
             {
                 int fd = open(filename, O_RDONLY);
                 /* XXX problems here
                  * open will successfully deal with file under the current directory
                  * but dlopen won't until RUNPATH is set
                  */
-                if(fd == -1)
+                if (fd == -1)
                 {
                     //XXX: THIS IS NOT REALLY USEABLE NOW, PLZ ADD RUNPATH SUPPORT
                     //only lib1.so -> lib2.so -> lib3.so will work now ... and no libc func can be used
-                    
+
                     char buf[128];
-                    for(int i = 0;i < runpcnt; i++)
+                    for (int i = 0; i < runpcnt; i++)
                     {
                         char *ptr = mempcpy(buf, l->l_runpath[i], strlen(l->l_runpath[i]));
                         *ptr = '/'; //add a "/" to make it a path
                         ptr++;
                         memcpy(ptr, filename, strlen(filename) + 1); //+1 to copy \0. memcpy only copy num bytes
-                        if((fd = open(buf, O_RDONLY)) != -1)
+                        if ((fd = open(buf, O_RDONLY)) != -1)
                             break;
                     }
                     //nothing found in runpath, now try system path
-                    if(fd == -1)
+                    if (fd == -1)
                     {
-                        for(int i = 0; i< 2;i++)
+                        for (int i = 0; i < 2; i++)
                         {
                             char *ptr = mempcpy(buf, sys_path[i], strlen(sys_path[i]));
                             memcpy(ptr, filename, strlen(filename) + 1);
-                            if((fd = open(buf, O_RDONLY)) != -1)
+                            if ((fd = open(buf, O_RDONLY)) != -1)
                                 break;
                         }
-                        if(fd == -1)
+                        if (fd == -1)
                             printf("In mapping %s as a dependency: file not found\n", filename);
                     }
-                    
                 }
                 struct NF_list *tmp = calloc(sizeof(struct NF_list), 1);
                 //reset the pointers to fit a new element

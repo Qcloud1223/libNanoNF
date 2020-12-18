@@ -3,7 +3,7 @@
  * But now, for simplicity, I just search it linearly
  */
 
-#include "../NFlink.h"
+#include "NFlink.h"
 #include <elf.h>
 #include <stdlib.h> //for NULL
 #include <string.h>
@@ -16,10 +16,10 @@ void *NFsym(void *ll, const char *s)
 
     Elf64_Sym *curr_sym = symtab;
     //strtab is at higher address, so this can serve as a end point
-    while((void *)curr_sym < (void *)strtab)
+    while ((void *)curr_sym < (void *)strtab)
     {
         Elf64_Word name = curr_sym->st_name;
-        if(!strcmp(strtab + name, s))
+        if (!strcmp(strtab + name, s))
         {
             //found it
             //FIXME: you may want to check if the symbol is valid. E.g., is it UND?
