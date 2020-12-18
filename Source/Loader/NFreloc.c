@@ -244,4 +244,5 @@ void NFreloc(struct NF_link_map *l, const ProxyRecord *records)
         dlclose(*lm);
         lm++;
     } */
+    //TODO: add a mprotect to protect the already relocated entries from writing
 }

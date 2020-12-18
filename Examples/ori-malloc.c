@@ -46,7 +46,8 @@ int main()
         {"malloc", GlobalMalloc},
         {"realloc", GlobalRealloc},
         {"calloc", GlobalCalloc},
-        {"free", GlobalFree}};
+        {"free", GlobalFree},
+        {"gibbish", NULL}};
     LoadLibrary(lib_1, records);
 
     SetCurrentHeap(libHeap);

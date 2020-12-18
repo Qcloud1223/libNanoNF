@@ -161,7 +161,11 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
         //mmap((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot,
         //    MAP_FILE|MAP_COPY|MAP_FIXED,
         //    fd, c->mapoff);
-        pread(fd, (void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->mapoff);
+        if(pread(fd, (void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->mapoff) < 0)
+        {
+            printf("error when reading library %s, and the errno is %d", l->l_name, errno);
+            exit(-1);
+        }
         mprotect((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot | PROT_WRITE); //may have issues
         
         if(l->l_phdr == 0 &&
@@ -193,6 +197,7 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
                 /* need new page to store tons of bss variables here */
                 //mmap((void *)zeropage, ALIGN_UP(zeroend, 4096) - zeropage,
                 //    c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED, -1, 0);
+                memset((void *)zeropage, 0, ALIGN_UP(zeroend, 4096) - zeropage);
             }
         }
         ++c;
@@ -265,9 +270,9 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
 
             /* setting the protection of this segment. may have errors */
             c->prot = 0;
-            c->prot |= ph->p_flags & PF_R;
+            c->prot |= (ph->p_flags & PF_R) >> 2;
             c->prot |= ph->p_flags & PF_W;
-            c->prot |= ph->p_flags & PF_X;
+            c->prot |= (ph->p_flags & PF_X) << 2;
 
             break;
         }
