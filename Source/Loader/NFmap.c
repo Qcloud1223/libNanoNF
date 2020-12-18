@@ -265,9 +265,9 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
 
             /* setting the protection of this segment. may have errors */
             c->prot = 0;
-            c->prot |= ph->p_flags & PROT_READ;
-            c->prot |= ph->p_flags & PROT_WRITE;
-            c->prot |= ph->p_flags & PROT_EXEC;
+            c->prot |= ph->p_flags & PF_R;
+            c->prot |= ph->p_flags & PF_W;
+            c->prot |= ph->p_flags & PF_X;
 
             break;
         }
