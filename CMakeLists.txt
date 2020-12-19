@@ -37,6 +37,10 @@ add_library(_1 SHARED Examples/Library/lib1.c) # maybe better name later
 add_library(HashFunc SHARED Examples/Library/hash.cpp)
 set_property(TARGET HashFunc PROPERTY CXX_STANDARD 14)
 
+add_library(MatchFunc SHARED Examples/Library/Match.c)
+target_include_directories(MatchFunc PUBLIC ${PCRE2_INCLUDE_DIRS})
+target_link_libraries(MatchFunc ${PCRE2_LIBRARIES})
+
 add_executable(ori-malloc Examples/ori-malloc.c)
 target_include_directories(ori-malloc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 target_link_libraries(ori-malloc NoMalloc)
@@ -46,9 +50,14 @@ target_include_directories(OneBoxOneFuncOnce PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
 target_link_libraries(OneBoxOneFuncOnce NoMalloc)
 
 find_package(PCAP REQUIRED)
+find_package(PCRE2 REQUIRED)
 add_executable(NFVDemo Examples/nfv.c)
 target_include_directories(NFVDemo PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include
     ${PCAP_INCLUDE_DIR}
 )
 target_link_libraries(NFVDemo NoMalloc ${CMAKE_DL_LIBS} ${PCAP_LIBRARY})
+
+add_executable(UtilRun utilrun.c)
+target_include_directories(UtilRun PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
+target_link_libraries(UtilRun NoMalloc MatchFunc)

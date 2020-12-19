@@ -13,7 +13,7 @@
 #include "Box.h"
 
 const char *LIBRARY_FILES[] = {
-    "./libHashFunc.so",
+    "./libMatchFunc.so",
     NULL,
 };
 

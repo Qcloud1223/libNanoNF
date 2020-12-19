@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <new>
+#include <cstdio>
 
 using namespace std;
 
@@ -24,7 +25,7 @@ void *operator new(size_t sz)
 void operator delete(void *ptr) noexcept
 {
     // std::puts("global op delete called");
-    std::free(ptr);
+    free(ptr);
 }
 
 struct Tuple4
@@ -43,9 +44,11 @@ struct HashTuple4
 {
     size_t operator()(Tuple4 const &t) const noexcept
     {
+        // printf("[hash] in operator()\n");
         size_t h1 = hash<uint32_t>{}(t.srcIP), h2 = hash<uint32_t>{}(t.dstIP),
                h3 = hash<uint16_t>{}(t.srcPort), h4 = hash<uint16_t>{}(t.dstPort);
         size_t r1 = h1 ^ (h2 << 1), r2 = r1 ^ (h3 << 1), r3 = r2 ^ (h4 << 1);
+        // printf("[hash] out operator(): %lu\n", r3);
         return r3;
     }
 };
@@ -75,6 +78,7 @@ struct __attribute__((__packed__)) Headers
 
 extern "C" void ProcessPacket(uint8_t *packet, size_t packetLength)
 {
+    // printf("[hashfunc] start\n");
     Headers *headers = (Headers *)packet;
     Tuple4 tuple = {
         .srcIP = headers->srcIP,
@@ -82,9 +86,12 @@ extern "C" void ProcessPacket(uint8_t *packet, size_t packetLength)
         .srcPort = headers->srcPort,
         .dstPort = headers->dstPort};
     uint16_t mappedPort;
+    // printf("[hashfunc] before select\n");
     try
     {
+        // printf("[hashfunc] before call `at`\n");
         mappedPort = table.at(tuple);
+        // printf("[hashfunc] after call `at`\n");
         if (headers->fin)
         {
             table.erase(tuple);
@@ -92,6 +99,7 @@ extern "C" void ProcessPacket(uint8_t *packet, size_t packetLength)
     }
     catch (out_of_range)
     {
+        // printf("[hashfunc] in catch\n");
         mappedPort = nextPort;
         if (!headers->fin)
         {
