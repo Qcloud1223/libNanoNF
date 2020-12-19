@@ -118,6 +118,11 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
     struct loadcmd *c = loadcmds;
     /* I'm not doing this because addr is specified */
     //l->l_map_start = (Elf64_Addr) mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE, fd, c->mapoff);
+    if(nloadcmds < 2)
+    {
+        printf("Wrong type of shared object or ELF: LOAD segment less than 2\n");
+        exit(-1);
+    }
 
     void *tmp;
     if (addr)
@@ -151,9 +156,12 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
         /* This is bad because it assume only the first LOAD contains executable pages
          * While in fact it is not
          */
-        mprotect((void *)(l->l_map_start + c->mapend - c->mapstart),
-                 loadcmds[nloadcmds - 1].mapstart - c->mapend,
-                 PROT_NONE);
+        //mprotect((void *)(l->l_map_start + c->mapend - c->mapstart),
+        //         loadcmds[nloadcmds - 1].mapstart - c->mapend,
+        //         PROT_NONE);
+        mprotect((void*) l->l_addr + loadcmds[nloadcmds - 2].mapend,
+                    loadcmds[nloadcmds - 1].mapstart - loadcmds[nloadcmds - 2].mapend,
+                    PROT_NONE);
     }
 
     while (c < &loadcmds[nloadcmds])
