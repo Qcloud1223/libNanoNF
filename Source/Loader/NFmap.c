@@ -118,6 +118,11 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
     struct loadcmd *c = loadcmds;
     /* I'm not doing this because addr is specified */
     //l->l_map_start = (Elf64_Addr) mmap(addr, maplength, c->prot, MAP_COPY|MAP_FILE, fd, c->mapoff);
+    if(nloadcmds < 2)
+    {
+        printf("Wrong type of shared object or ELF: LOAD segment less than 2\n");
+        exit(-1);
+    }
 
     void *tmp;
     if (addr)
@@ -151,9 +156,12 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
         /* This is bad because it assume only the first LOAD contains executable pages
          * While in fact it is not
          */
-        mprotect((void *)(l->l_map_start + c->mapend - c->mapstart),
-                 loadcmds[nloadcmds - 1].mapstart - c->mapend,
-                 PROT_NONE);
+        //mprotect((void *)(l->l_map_start + c->mapend - c->mapstart),
+        //         loadcmds[nloadcmds - 1].mapstart - c->mapend,
+        //         PROT_NONE);
+        mprotect((void*) l->l_addr + loadcmds[nloadcmds - 2].mapend,
+                    loadcmds[nloadcmds - 1].mapstart - loadcmds[nloadcmds - 2].mapend,
+                    PROT_NONE);
     }
 
     while (c < &loadcmds[nloadcmds])
@@ -161,7 +169,11 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
         //mmap((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot,
         //    MAP_FILE|MAP_COPY|MAP_FIXED,
         //    fd, c->mapoff);
-        pread(fd, (void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->mapoff);
+        if(pread(fd, (void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->mapoff) < 0)
+        {
+            printf("error when reading library %s, and the errno is %d", l->l_name, errno);
+            exit(-1);
+        }
         mprotect((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot | PROT_WRITE); //may have issues
         
         if(l->l_phdr == 0 &&
@@ -193,6 +205,7 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
                 /* need new page to store tons of bss variables here */
                 //mmap((void *)zeropage, ALIGN_UP(zeroend, 4096) - zeropage,
                 //    c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED, -1, 0);
+                memset((void *)zeropage, 0, ALIGN_UP(zeroend, 4096) - zeropage);
             }
         }
         ++c;
@@ -265,9 +278,9 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
 
             /* setting the protection of this segment. may have errors */
             c->prot = 0;
-            c->prot |= ph->p_flags & PROT_READ;
-            c->prot |= ph->p_flags & PROT_WRITE;
-            c->prot |= ph->p_flags & PROT_EXEC;
+            c->prot |= (ph->p_flags & PF_R) >> 2;
+            c->prot |= ph->p_flags & PF_W;
+            c->prot |= (ph->p_flags & PF_X) << 2;
 
             break;
         }
