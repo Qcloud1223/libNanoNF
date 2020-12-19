@@ -35,7 +35,7 @@ char getch(void)
 
 int main()
 {
-    Library *lib_1 = CreateLibrary("lib_1.so");
+    Library *lib_1 = CreateLibrary("./lib_1.so");
     lib_1->address = memalign(getpagesize(), lib_1->size + HEAP_SIZE);
     printf("lib_1.so loading address: %p\n", lib_1->address);
 

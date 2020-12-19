@@ -8,6 +8,8 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
 add_library(NoMalloc 
     Source/Heap.c 
     Source/Global.c
@@ -23,13 +25,17 @@ add_library(NoMalloc
 target_include_directories(NoMalloc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 
 add_executable(TestHeap Tests/Heap.c)
-target_include_directories(TestHeap PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_include_directories(TestHeap PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Source)
+target_include_directories(TestHeap PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source
+)
 target_link_libraries(TestHeap NoMalloc)
 add_test(NAME TestHeap COMMAND TestHeap)
 
-# maybe better name later
-add_library(_1 SHARED Examples/lib1.c)
+add_library(_1 SHARED Examples/Library/lib1.c) # maybe better name later
+
+add_library(HashFunc SHARED Examples/Library/hash.cpp)
+set_property(TARGET HashFunc PROPERTY CXX_STANDARD 14)
 
 add_executable(ori-malloc Examples/ori-malloc.c)
 target_include_directories(ori-malloc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
@@ -38,3 +44,11 @@ target_link_libraries(ori-malloc NoMalloc)
 add_executable(OneBoxOneFuncOnce Examples/OneBoxOneFuncOnce.c)
 target_include_directories(OneBoxOneFuncOnce PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 target_link_libraries(OneBoxOneFuncOnce NoMalloc)
+
+find_package(PCAP REQUIRED)
+add_executable(NFVDemo Examples/nfv.c)
+target_include_directories(NFVDemo PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include
+    ${PCAP_INCLUDE_DIR}
+)
+target_link_libraries(NFVDemo NoMalloc ${CMAKE_DL_LIBS} ${PCAP_LIBRARY})
