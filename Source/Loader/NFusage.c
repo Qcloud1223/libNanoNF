@@ -83,7 +83,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
     //fb.buf is used as a pointer to ELF header, later we will do this again in building up the link_map
     struct NF_link_map *l = nl->map;
     Elf64_Phdr *phdr = malloc(l->l_phlen);
-    pread(nl->fd, (void *)phdr, l->l_phlen, l->l_phoff);
+    ssize_t _c = pread(nl->fd, (void *)phdr, l->l_phlen, l->l_phoff);
     uint16_t phnum = l->l_phnum;
 
     Elf64_Dyn *ld;
@@ -104,7 +104,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
         {
             ld = malloc(ph->p_memsz);
             /* though it is not the same time, but it is the same fd... */
-            pread(nl->fd, (void *)ld, ph->p_memsz, ph->p_offset); //note that offset and paddr are not the same
+            _c = pread(nl->fd, (void *)ld, ph->p_memsz, ph->p_offset); //note that offset and paddr are not the same
         }
     }
 
@@ -137,7 +137,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
         if (dyn->d_tag == DT_RUNPATH)
         {
             char *tmp_name = malloc(64);
-            pread(nl->fd, tmp_name, 64, str->d_un.d_ptr + dyn->d_un.d_val);
+            _c = pread(nl->fd, tmp_name, 64, str->d_un.d_ptr + dyn->d_un.d_val);
             l->l_runpath[runpcnt] = tmp_name;
             runpcnt++;
         }
@@ -152,7 +152,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
             neededcnt = 0; //neededcnt is DT_NEEDED-wise
             Elf64_Addr offset = dyn->d_un.d_val;
             char *filename = malloc(128);                           //store the filename for each dependency
-            pread(nl->fd, filename, 128, str->d_un.d_ptr + offset); //change from 64 to 128 because the prefix is long
+            _c = pread(nl->fd, filename, 128, str->d_un.d_ptr + offset); //change from 64 to 128 because the prefix is long
             struct NF_list *tmp = head;
             int found = 0;
             while (tmp != NULL)
