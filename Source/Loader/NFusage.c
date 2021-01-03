@@ -14,12 +14,14 @@ struct NF_list *head = NULL, *tail = NULL;
 uint64_t dissect_and_calculate(struct NF_list *nl);
 #define ALIGN_DOWN(base, size) ((base) & -((__typeof__(base))(size)))
 #define ALIGN_UP(base, size) ALIGN_DOWN((base) + (size)-1, (size))
-static const char *sys_path[2];
+//static const char *sys_path[2];
+static const char *sys_path[3]; //a quick fix to load the custom libpcre2 without optimization
 
 void init_system_path()
 {
-    sys_path[0] = "/usr/lib/x86_64-linux-gnu/";
-    sys_path[1] = "/lib/x86_64-linux-gnu/";
+    sys_path[0] = "/mnt/c/Users/dyh/Downloads/pcre2-10.31/build/.libs/";
+    sys_path[1] = "/usr/lib/x86_64-linux-gnu/";
+    sys_path[2] = "/lib/x86_64-linux-gnu/";
 }
 
 uint64_t NFusage(void *ll)
@@ -149,7 +151,7 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
     {
         if (dyn->d_tag == DT_NEEDED)
         {
-            neededcnt = 0; //neededcnt is DT_NEEDED-wise
+            //neededcnt = 0; //neededcnt is DT_NEEDED-wise
             Elf64_Addr offset = dyn->d_un.d_val;
             char *filename = malloc(128);                           //store the filename for each dependency
             _c = pread(nl->fd, filename, 128, str->d_un.d_ptr + offset); //change from 64 to 128 because the prefix is long
@@ -190,7 +192,8 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                     //nothing found in runpath, now try system path
                     if (fd == -1)
                     {
-                        for (int i = 0; i < 2; i++)
+                        //for (int i = 0; i < 2; i++)
+                        for (int i = 0; i < 3; i++)
                         {
                             char *ptr = mempcpy(buf, sys_path[i], strlen(sys_path[i]));
                             memcpy(ptr, filename, strlen(filename) + 1);

@@ -12,7 +12,7 @@ Box *CreateBox(const char *file, Size heapSize);
 
 Size GetBoxSize(const Box *box);
 
-int DeployBox(Box *box, const Address address);
+int DeployBox(Box *box, const Address address, int argc, char *argv[], char **env);
 
 void PreExecute(const Box *box);
 

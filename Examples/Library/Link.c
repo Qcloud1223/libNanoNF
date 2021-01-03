@@ -16,6 +16,7 @@ void InitializeFunction()
 {
     head = malloc(sizeof(Node));
     // printf("[link] head: %p\n", head);
+    // printf("checking printf inside the initial function of libLink\n");
     memset(head->header, 0, 32);
     head->prev = NULL;
     Node *cursor = head;

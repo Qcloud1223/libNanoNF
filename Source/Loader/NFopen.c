@@ -29,6 +29,8 @@
 extern struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr);
 extern void NFreloc(struct NF_link_map *l, const ProxyRecord *records);
 extern void map_deps(struct NF_link_map *l);
+extern void NFversion(struct NF_link_map *l);
+extern void NFinit(struct NF_link_map *l, int argc, char *argv[], char** env);
 
 struct NFopen_args
 {
@@ -39,7 +41,23 @@ struct NFopen_args
 
     /* return value */
     void *new; //point to the base address of the new link map
+    int argc;
+    char **argv;
+    char **env;
 };
+
+void call_init(struct NF_link_map *l, int argc, char *argv[], char** env)
+{
+    int i = 0;
+    while(l->l_search_list[i] != l)
+    {
+        if(l->l_search_list[i]->l_init == 0)
+            call_init(l->l_search_list[i], argc, argv, env);
+        i++;
+    }
+    NFinit(l, argc, argv, env);
+    printf("Initialization: %s is done\n", l->l_name);
+}
 
 /* A worker function is needed because sometimes we want to dlopen w/o error handling(but it's enabled by default) 
  * some internal dlopen might call worker directly, e.g. -ldl also dynamically loaded the lib
@@ -99,6 +117,13 @@ static void NFopen_worker(void *a, const ProxyRecord *records)
      * After all, I'm doing a dynamic loading, and don't need the symbols to be all settled when I enter the program
      */
     tmp = head;
+    while(tmp)
+    {
+        NFversion(tmp->map);
+        tmp = tmp->next;
+    }
+
+    tmp = head;
     tmp->map->l_prev = NULL;
     while(tmp)
     {
@@ -115,6 +140,8 @@ static void NFopen_worker(void *a, const ProxyRecord *records)
         
         tmp = tmp->next;
     }
+
+    call_init(head->map, args->argc, args->argv, args->env);    
 
     /* destroy the list */
     tmp = head;
@@ -134,7 +161,7 @@ static void NFopen_worker(void *a, const ProxyRecord *records)
  * so it's better got passed to every func on call chain
  */
 
-void *NFopen(const char* file, int mode, void *addr, const ProxyRecord *records)
+void *NFopen(const char* file, int mode, void *addr, const ProxyRecord *records, int argc, char *argv[], char **env)
 {
     /* no need for a __NFopen because no static link would be used */
 
@@ -143,6 +170,9 @@ void *NFopen(const char* file, int mode, void *addr, const ProxyRecord *records)
     a.file = file;
     a.mode = mode;
     a.addr = addr;
+    a.argc = argc;
+    a.argv = argv;
+    a.env = env;
 
     NFopen_worker(&a, records);
 

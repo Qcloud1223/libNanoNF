@@ -13,7 +13,8 @@
 #include "Box.h"
 
 const char *LIBRARY_FILES[] = {
-    "./libLinkFunc.so",
+    //"./libLinkFunc.so",
+    "./libMatchFunc.so",
     NULL,
 };
 
@@ -58,7 +59,7 @@ void onPacket(u_char *raw, const struct pcap_pkthdr *header, const u_char *packe
     arg->totalSize += header->caplen;
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[], char **env)
 {
     if (argc < 3)
     {
@@ -90,12 +91,14 @@ int main(int argc, const char *argv[])
             libraries[i].protected.box = CreateBox(LIBRARY_FILES[i], 1u << 30u);
             libraries[i].protected.address =
                 memalign(getpagesize(), GetBoxSize(libraries[i].protected.box));
-            if (DeployBox(libraries[i].protected.box, libraries[i].protected.address))
+            if (DeployBox(libraries[i].protected.box, libraries[i].protected.address,
+                        argc, argv, env))
             {
                 fprintf(stderr, "DeployBox: failed to deploy %s\n", LIBRARY_FILES[i]);
                 return 1;
             }
             RunBoxL(libraries[i].protected.box, OnInitialize, InitializeFunction)();
+            printf("sandbox initialize done\n");
             libraries[i].process = GetExecutedFunction(libraries[i].protected.box, "ProcessPacket");
         }
         else

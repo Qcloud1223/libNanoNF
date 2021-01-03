@@ -19,6 +19,8 @@ add_library(NoMalloc
     Source/Loader/NFreloc.c
     Source/Loader/NFsym.c
     Source/Loader/NFusage.c
+    Source/Loader/NFversion.c
+    Source/Loader/NFinit.c
     Source/Loader.c
     Source/Box.c
 )

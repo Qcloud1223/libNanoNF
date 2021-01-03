@@ -10,7 +10,7 @@
 #include "Loader.h"
 #include <stdint.h>
 
-extern void *NFopen(const char *file, int mode, void *addr, const ProxyRecord *records);
+extern void *NFopen(const char *file, int mode, void *addr, const ProxyRecord *records, int argc, char *argv[], char **env);
 extern void *NFsym(void *l, const char *s);
 extern uint64_t NFusage(void *l);
 extern uint64_t NFusage_worker(const char *name, int mode);

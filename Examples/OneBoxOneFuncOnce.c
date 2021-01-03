@@ -10,7 +10,7 @@ typedef void (*Runner)();
 
 void SystemPause(void);
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[], char **env)
 {
     if (argc < 3)
     {
@@ -29,7 +29,7 @@ int main(int argc, const char *argv[])
     Address boxLocation = memalign(getpagesize(), GetBoxSize(libraryBox));
     printf("[driver] the box is at %p\n", boxLocation);
     // deploy the box into the location
-    if (DeployBox(libraryBox, boxLocation))
+    if (DeployBox(libraryBox, boxLocation, argc, argv, env))
     {
         fprintf(stderr, "DeployBox: fail\n");
         return 1;

@@ -43,10 +43,10 @@ Size GetBoxSize(const Box *box)
     return box->library->size + box->heapSize;
 }
 
-int DeployBox(Box *box, const Address address)
+int DeployBox(Box *box, const Address address, int argc, char *argv[], char **env)
 {
     box->library->address = address;
-    if (LoadLibrary(box->library, BOX_RECORDS))
+    if (LoadLibrary(box->library, BOX_RECORDS, argc, argv, env))
     {
         return 1;
     }
@@ -61,7 +61,8 @@ void PreExecute(const Box *box)
 
 void *GetExecutedFunction(const Box *box, const char *function)
 {
-    return GetFunction(box->library, function);
+    void *tmp = GetFunction(box->library, function);    
+    return tmp;
 }
 
 void ReleaseBox(Box *box)

@@ -17,6 +17,8 @@ void InitializeFunction()
 {
     int errorNumber;
     PCRE2_SIZE errorOffset;
+    //pcre2_code *re[4];
+    //PCRE2_SPTR patterns[] = {"apple", "", "pen", "pear"};
     for (int i = 0; i < 4; i += 1)
     {
         printf("[match] compile re\n");
@@ -32,6 +34,7 @@ void InitializeFunction()
             exit(1);
         }
         matchData[i] = pcre2_match_data_create_from_pattern(re[i], NULL);
+        //printf("actively doing nothing except print initialize here\n");
     }
 }
 
@@ -40,5 +43,6 @@ void ProcessPacket(uint8_t *packet, size_t packetLength)
     for (int i = 0; i < 4; i += 1)
     {
         pcre2_match(re[i], packet, packetLength, 0, 0, matchData[i], NULL);
+        //printf("actively doing nothing except print process here\n");
     }
 }

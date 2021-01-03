@@ -33,7 +33,7 @@ char getch(void)
 // heap size: 20MB
 #define HEAP_SIZE (64u << 20u)
 
-int main()
+int main(int argc, char *argv[], char **env)
 {
     Library *lib_1 = CreateLibrary("./lib_1.so");
     lib_1->address = memalign(getpagesize(), lib_1->size + HEAP_SIZE);
@@ -48,7 +48,7 @@ int main()
         {"calloc", GlobalCalloc},
         {"free", GlobalFree},
         {"gibbish", NULL}};
-    LoadLibrary(lib_1, records);
+    LoadLibrary(lib_1, records, argc, argv, env);
 
     SetCurrentHeap(libHeap);
     void (*p1)() = GetFunction(lib_1, "p1");

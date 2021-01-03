@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <dlfcn.h>
 #include <string.h> //for strcmp
+#include <stdio.h>
 
 extern Elf64_Addr REAL_MALLOC; //ask for external, real malloc address
 
@@ -83,7 +84,8 @@ dl_new_hash(const char *s)
     return h & 0xffffffff;
 }
 
-static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_result *result, const ProxyRecord *records)
+static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_result *result, const ProxyRecord *records,
+                        Elf64_Word rela_hash)
 {
     for (int i = 0; records[i].pointer; i += 1)
     {
@@ -140,9 +142,15 @@ static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_r
                     /* FIXME: Please make sure no local symbols like "tmp" will be accessed here! */
                     if (!strcmp(symname, name))
                     {
-                        result->s = &symtab[symidx];
-                        result->addr = result->s->st_value + l->l_addr;
-                        return 1;
+                        Elf64_Versym *cidx = (Elf64_Versym *)l->l_info[36]->d_un.d_ptr;
+                        Elf64_Word real_hash = l->l_verdef[cidx[symidx] & 0x7fff];
+                        if(rela_hash == real_hash || real_hash == 0 || rela_hash == 0)
+                        {
+                            result->s = &symtab[symidx];
+                            result->addr = result->s->st_value + l->l_addr;
+                            return 1;
+                        }
+                        printf("find a symbol with same name but not same version when reloating %s using %s", name, l->l_name);
                     }
                 }
             } while ((*hasharr++ & 1u) == 0);
@@ -181,6 +189,9 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur, const ProxyReco
         Elf64_Sym *tmp_sym = &symtab[idx >> 32]; //from dynamic symbol table get the symbol
         Elf64_Word name = tmp_sym->st_name;
         const char *real_name = strtab + name; //from string table get the real name of the symbol
+        Elf64_Versym *versym = (Elf64_Versym *)l->l_info[36]->d_un.d_ptr;
+        int rela_idx = versym[idx >> 32];
+        Elf64_Word rela_hash = l->l_verneed[rela_idx & 0x7fff];
 
         const unsigned long int r_type = it->r_info & 0xffffffff;
         if (r_type == R_X86_64_IRELATIVE)
@@ -198,7 +209,7 @@ static void do_reloc(struct NF_link_map *l, struct uniReloc *ur, const ProxyReco
         while (*curr_search)
         {
             struct rela_result result;
-            int res = lookup_linkmap((struct NF_link_map *)*curr_search, real_name, &result, records);
+            int res = lookup_linkmap((struct NF_link_map *)*curr_search, real_name, &result, records, rela_hash);
             if (res)
             {
                 /* check different types and fix the address for rela entry here */

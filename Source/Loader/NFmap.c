@@ -63,6 +63,13 @@ static void fill_info(struct NF_link_map *l)
         else if ((Elf64_Xword)dyn->d_tag == DT_GNU_HASH)
             info[35] = dyn;
         //upd: Use fixed index instead of lots of unreadable macros
+        else if ((Elf64_Xword)dyn->d_tag == DT_VERSYM)
+            info[36] = dyn;
+        else if ((Elf64_Xword)dyn->d_tag == DT_VERNEED)
+            info[37] = dyn;
+        else if ((Elf64_Xword)dyn->d_tag == DT_VERDEF)
+            info[38] = dyn;
+        //TODO: optimize this huge branch if the performance is poor
         ++dyn;
         /* OS specific flags are currently omitted */
     }
@@ -78,6 +85,9 @@ static void fill_info(struct NF_link_map *l)
     rebase(DT_RELA);
     rebase(DT_JMPREL);
     rebase(35); //DT_GNU_HASH
+    rebase(36); //DT_VERSYM is an index to all symbols
+    rebase(37); //DT_VERNEED is a place to store all the version needed
+    rebase(38); //DT_VERDEF is ... definitions
 }
 
 static void setup_hash(struct NF_link_map *l)
@@ -186,27 +196,33 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
         /* only .bss will cause this */
         if (c->allocend > c->dataend)
         {
-            Elf64_Addr zero, zeroend, zeropage;
-            zero = l->l_addr + c->dataend; //where zero should start
-            zeroend = l->l_addr + c->allocend;
-            zeropage = (zero + 4095) & (~4095);
+            // Elf64_Addr zero, zeroend, zeropage;
+            // zero = l->l_addr + c->dataend; //where zero should start
+            // zeroend = l->l_addr + c->allocend;
+            // zeropage = (zero + 4095) & (~4095);
 
-            if (zeroend < zeropage)
-                zeropage = zeroend;
+            // if (zeroend < zeropage)
+            //     zeropage = zeroend;
 
-            if (zeropage > zero)
-            {
-                /* In this case we have some .bss here */
-                memset((void *)zero, '\0', zeropage - zero);
-            }
+            // if (zeropage > zero)
+            // {
+            //     /* In this case we have some .bss here */
+            //     memset((void *)zero, '\0', zeropage - zero);
+            // }
 
-            if (zeroend > zeropage)
-            {
-                /* need new page to store tons of bss variables here */
-                //mmap((void *)zeropage, ALIGN_UP(zeroend, 4096) - zeropage,
-                //    c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED, -1, 0);
-                memset((void *)zeropage, 0, ALIGN_UP(zeroend, 4096) - zeropage);
-            }
+            // if (zeroend > zeropage)
+            // {
+            //     /* need new page to store tons of bss variables here */
+            //     //mmap((void *)zeropage, ALIGN_UP(zeroend, 4096) - zeropage,
+            //     //    c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED, -1, 0);
+            //     memset((void *)zeropage, 0, ALIGN_UP(zeroend, 4096) - zeropage);
+            // }
+            memset((void *)(l->l_addr + c->dataend), 0, ALIGN_UP(l->l_addr + c->allocend, 4096) - (l->l_addr + c->dataend));
+        }
+        if(c == &loadcmds[0])
+        {
+            //manually close the write permission when .text region gets loaded
+            mprotect((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot & (~PROT_WRITE));
         }
         ++c;
     }
