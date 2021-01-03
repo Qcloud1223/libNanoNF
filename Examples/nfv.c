@@ -98,7 +98,7 @@ int main(int argc, char *argv[], char **env)
                 return 1;
             }
             RunBoxL(libraries[i].protected.box, OnInitialize, InitializeFunction)();
-            printf("sandbox initialize done\n");
+            
             libraries[i].process = GetExecutedFunction(libraries[i].protected.box, "ProcessPacket");
         }
         else

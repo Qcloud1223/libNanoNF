@@ -219,11 +219,11 @@ static void map_segments(struct NF_link_map *l, void *addr, struct loadcmd *load
             // }
             memset((void *)(l->l_addr + c->dataend), 0, ALIGN_UP(l->l_addr + c->allocend, 4096) - (l->l_addr + c->dataend));
         }
-        if(c == &loadcmds[0])
-        {
-            //manually close the write permission when .text region gets loaded
-            mprotect((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot & (~PROT_WRITE));
-        }
+        //if(c == &loadcmds[0])
+        //{
+            //restore the permission of the original load segment
+            mprotect((void *) (l->l_addr + c->mapstart), c->mapend - c->mapstart, c->prot);
+        //}
         ++c;
     }
 }

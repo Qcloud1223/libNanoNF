@@ -141,7 +141,7 @@ static void NFopen_worker(void *a, const ProxyRecord *records)
         tmp = tmp->next;
     }
 
-    call_init(head->map, args->argc, args->argv, args->env);    
+    //call_init(head->map, args->argc, args->argv, args->env);    
 
     /* destroy the list */
     tmp = head;

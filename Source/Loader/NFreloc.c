@@ -96,6 +96,45 @@ static int lookup_linkmap(struct NF_link_map *l, const char *name, struct rela_r
         }
     }
 
+    if(strcmp(l->l_name, "libc.so.6") == 0)
+    {
+        /* an early interception of libc, so that though libc is loaded as a NF_link_map,
+           it is never be used. The actual job is done by dlopen and dlsym
+           Use this technique to clobber all the DSO(only the direct ones for dlopen handles dependencies) 
+           that you think to be wrong */
+        void *handle = dlopen("libc.so.6", RTLD_LAZY);
+        void *res;
+        if(res = dlsym(handle, name))
+        {
+            result->addr = (Elf64_Addr)res;
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+        
+    }
+    // if(strcmp(l->l_name, "libpcre2-8.so.0") == 0)
+    // {
+    //     /* an early interception of libc, so that though libc is loaded as a NF_link_map,
+    //        it is never be used. The actual job is done by dlopen and dlsym
+    //        Use this technique to clobber all the DSO(only the direct ones for dlopen handles dependencies) 
+    //        that you think to be wrong */
+    //     void *handle = dlopen("libpcre2-8.so.0", RTLD_LAZY);
+    //     void *res;
+    //     if(res = dlsym(handle, name))
+    //     {
+    //         result->addr = (Elf64_Addr)res;
+    //         return 1;
+    //     }
+    //     else
+    //     {
+    //         return 0;
+    //     }
+        
+    // }
+
     /* search the symbol table of given link_map to find the occurrence of the symbol
         return 1 upon success and 0 otherwise */
     Elf64_Dyn *dyn = l->l_ld;

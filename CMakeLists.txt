@@ -25,6 +25,7 @@ add_library(NoMalloc
     Source/Box.c
 )
 target_include_directories(NoMalloc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
+target_link_libraries(NoMalloc dl)
 
 add_executable(TestHeap Tests/Heap.c)
 target_include_directories(TestHeap PUBLIC 
