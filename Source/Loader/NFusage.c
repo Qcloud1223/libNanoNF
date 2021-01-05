@@ -64,6 +64,8 @@ uint64_t NFusage_worker(const char *name, int mode)
     head->map->l_phnum = ehdr->e_phnum;
     head->map->l_phlen = maplength;
     head->map->l_phoff = ehdr->e_phoff;
+    head->map->l_shoff = ehdr->e_shoff;
+    head->map->l_shstr = ehdr->e_shstrndx;
 
     //not useful for we're using calloc
     //head->next = NULL;
@@ -87,6 +89,24 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
     Elf64_Phdr *phdr = malloc(l->l_phlen);
     ssize_t _c = pread(nl->fd, (void *)phdr, l->l_phlen, l->l_phoff);
     uint16_t phnum = l->l_phnum;
+
+    char shstr[4096];
+    _c = pread(nl->fd, (void *)shstr, 4096, l->l_shoff + l->l_shstr * sizeof(Elf64_Shdr));
+    Elf64_Shdr *sstr = (Elf64_Shdr *) shstr;
+    _c = pread(nl->fd, (void *)shstr, 4096, sstr->sh_offset); //now shstr is the actual section header string table 
+    char shdr[5120];
+    _c = pread(nl->fd, shdr, 5120, l->l_shoff);
+    Elf64_Shdr *sh = (Elf64_Shdr *) shdr;
+    int i = 0;
+    while(1)
+    {
+        if(strcmp((char *)shstr + (sh + i)->sh_name, ".text") == 0){
+            l->l_text_start = (sh + i)->sh_addr;
+            break;
+        }
+        i++;
+    }
+
 
     Elf64_Dyn *ld;
     Elf64_Addr mapstart = -1, mapend;
@@ -223,6 +243,8 @@ uint64_t dissect_and_calculate(struct NF_list *nl)
                 tmp->map->l_phnum = ehdr->e_phnum;
                 tmp->map->l_phlen = maplength;
                 tmp->map->l_phoff = ehdr->e_phoff;
+                tmp->map->l_shoff = ehdr->e_shoff;
+                tmp->map->l_shstr = ehdr->e_shstrndx;
                 l->l_search_list[neededcnt++] = tmp->map;
             }
         }

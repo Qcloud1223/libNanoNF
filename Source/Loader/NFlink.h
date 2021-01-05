@@ -46,7 +46,9 @@ struct NF_link_map
     //TODO: most of so do not have to include a DT_VERDEF, so lots of space is wasted. FIXME
     //also 45 is just an arbitrary number because libstdc++ define 41 of them
     int l_init;
-
+    Elf64_Addr l_text_start; //for add-symbol-file debugging
+    Elf64_Addr l_shoff;
+    Elf64_Half l_shstr;
 };
 
 /* move the definition of filebuf from NFmap.c here */

@@ -7,6 +7,10 @@ void p1()
     printf("Hello from lib1.so!\n");
     void *p = malloc(1024);
     printf("explicitly allocate a memory at: %p\n", p);
+
+    int sleeper;
+    scanf("%d", &sleeper);
+
     void *cp = calloc(1, 1024);
     printf("calloc succeed\n");
     memcpy(p, cp, 100);

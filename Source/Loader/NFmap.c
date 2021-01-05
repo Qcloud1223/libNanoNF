@@ -264,6 +264,10 @@ struct NF_link_map *NF_map(struct NF_list *nl, int mode, void *addr)
     //pread(nl->fd, (void *)phdr, maplength, ehdr->e_phoff);
 
     struct NF_link_map *l = nl->map;
+
+    fprintf(stderr, "Debug: at NFmap.c:268, the address of symbol file %s should be %p\n", l->l_name, 
+                    (void *)(l->l_text_start + (Elf64_Addr)addr));
+
     Elf64_Phdr *phdr = malloc(l->l_phlen);
     pread(nl->fd, (void *)phdr, l->l_phlen, l->l_phoff);
 
